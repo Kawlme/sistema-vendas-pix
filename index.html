@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Vendas, IA & Mercado Pago</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js para Gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+            },
+            pix: '#32bcad',
+            mp: '#009ee3'
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { transition: background-color 0.2s ease, border-color 0.2s ease; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-full flex flex-col antialiased">
+
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Header -->
+  <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="bg-gradient-to-tr from-brand-600 to-emerald-400 p-2.5 rounded-xl text-white shadow-md shadow-brand-500/20">
+          <i class="fa-solid fa-receipt text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight text-slate-900 dark:text-white">Gestão de Pedidos, Pix & Mercado Pago</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Dataset de 31 Pedidos Integrado com IA & Mercado Pago</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Botão Mercado Pago -->
+        <a id="header-mp-link" href="https://mpago.la/13fqdeA" target="_blank" class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 rounded-lg text-xs font-semibold hover:bg-sky-100 transition-all">
+          <i class="fa-solid fa-credit-card text-mp"></i>
+          <span>Mercado Pago</span>
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+        </a>
+
+        <!-- Chave Pix -->
+        <button onclick="copyRawPixKey()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition-all">
+          <i class="fa-solid fa-key text-pix"></i>
+          <span id="header-pix-display">Pix: 10642958947</span>
+          <i class="fa-regular fa-copy ml-1"></i>
+        </button>
+
+        <!-- Configurações -->
+        <button onclick="openModal('modal-pix-settings')" class="p-2.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm" title="Configurações de Pagamento">
+          <i class="fa-solid fa-gear text-slate-600 dark:text-slate-300"></i>
+        </button>
+
+        <!-- Gráficos -->
+        <button onclick="toggleAnalyticsView()" class="p-2.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm" title="Alternar Visão de Gráficos">
+          <i class="fa-solid fa-chart-pie text-brand-600 dark:text-brand-400"></i>
+        </button>
+
+        <!-- Dark Mode -->
+        <button id="theme-toggle" onclick="toggleDarkMode()" class="p-2.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm" title="Alternar tema">
+          <i class="fa-solid fa-moon dark:hidden"></i>
+          <i class="fa-solid fa-sun hidden dark:block text-amber-400"></i>
+        </button>
+
+        <!-- Novo Pedido -->
+        <button onclick="openModal('modal-order')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-sm transition-all hover:scale-[1.02] active:scale-95">
+          <i class="fa-solid fa-plus"></i>
+          <span>Novo Pedido</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navegação de Abas -->
+  <div class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-4">
+      <button id="tab-btn-orders" onclick="switchTab('orders')" class="py-3 px-4 text-xs font-bold border-b-2 border-brand-600 text-brand-600 dark:text-brand-400 flex items-center gap-2">
+        <i class="fa-solid fa-list-check"></i> Pedidos & Vendas
+      </button>
+      <button id="tab-btn-history" onclick="switchTab('history')" class="py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2">
+        <i class="fa-solid fa-clock-rotate-left"></i> Histórico de Transações & Logs
+        <span id="history-badge-count" class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-semibold">0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Conteúdo Principal -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- VIEW 1: PEDIDOS -->
+    <div id="view-orders" class="space-y-8">
+      <!-- Grid de KPIs -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Faturamento Total</span>
+            <h3 id="kpi-total-geral" class="text-2xl font-bold text-slate-900 dark:text-white mt-1">R$ 0,00</h3>
+            <p class="text-xs text-slate-400 mt-1"><span id="kpi-qtd-pedidos">31</span> pedidos registrados</p>
+          </div>
+          <div class="p-3 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-xl">
+            <i class="fa-solid fa-chart-line text-xl"></i>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Pago</span>
+            <h3 id="kpi-total-pago" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">R$ 0,00</h3>
+            <p class="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1" id="kpi-pago-count">0 pagos</p>
+          </div>
+          <div class="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-xl">
+            <i class="fa-circle-check fa-solid text-xl"></i>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Pendente</span>
+            <h3 id="kpi-total-pendente" class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">R$ 0,00</h3>
+            <p class="text-xs text-amber-600/80 dark:text-amber-400/80 mt-1" id="kpi-pendente-count">0 pendentes</p>
+          </div>
+          <div class="p-3 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-xl">
+            <i class="fa-clock fa-solid text-xl"></i>
+          </div>
+        </div>
+
+        <!-- Card Pix / Mercado Pago -->
+        <div class="bg-gradient-to-br from-emerald-600 to-teal-700 p-5 rounded-2xl text-white shadow-md flex items-center justify-between relative overflow-hidden">
+          <div class="z-10">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-emerald-100 uppercase tracking-wider">Chave Pix Recebedor</span>
+              <span id="card-pix-type-badge" class="bg-white/20 text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase">CPF</span>
+            </div>
+            <h3 id="card-pix-key-display" class="text-xl font-bold text-white mt-1 tracking-wider">10642958947</h3>
+            <div class="flex items-center gap-2 mt-2">
+              <button onclick="copyRawPixKey()" class="text-xs bg-white/20 hover:bg-white/30 backdrop-blur-sm px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5">
+                <i class="fa-regular fa-copy"></i> Copiar
+              </button>
+              <a id="card-mp-btn" href="https://mpago.la/13fqdeA" target="_blank" class="text-xs bg-sky-500/80 hover:bg-sky-500 backdrop-blur-sm px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-credit-card"></i> Mercado Pago
+              </a>
+            </div>
+          </div>
+          <i class="fa-solid fa-qrcode text-6xl text-white/10 absolute -right-2 -bottom-2"></i>
+        </div>
+      </section>
+
+      <!-- Painel de Gráficos -->
+      <section id="analytics-section" class="grid grid-cols-1 lg:grid-cols-2 gap-5 hidden">
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <h4 class="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-brand-500"></i> Proporção Pago vs Pendente
+          </h4>
+          <div class="h-56 relative flex items-center justify-center">
+            <canvas id="chart-status"></canvas>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <h4 class="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-column text-indigo-500"></i> Top Produtos por Faturamento
+          </h4>
+          <div class="h-56 relative">
+            <canvas id="chart-products"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ações em Lote -->
+      <div id="bulk-actions-bar" class="hidden bg-slate-900 text-white p-3.5 rounded-2xl shadow-lg flex items-center justify-between gap-4 transition-all">
+        <div class="flex items-center gap-3">
+          <span class="bg-brand-500 text-slate-950 font-bold text-xs px-2.5 py-1 rounded-full" id="bulk-count">0 selecionados</span>
+          <span class="text-xs text-slate-300">Ações para os itens marcados:</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="bulkMarkAsPaid()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5">
+            <i class="fa-solid fa-check"></i> Marcar como Pago
+          </button>
+          <button onclick="bulkDelete()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5">
+            <i class="fa-solid fa-trash"></i> Excluir Selecionados
+          </button>
+          <button onclick="clearBulkSelection()" class="px-2.5 py-1.5 text-slate-400 hover:text-white text-xs">
+            Cancelar
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="relative w-full sm:w-80">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input type="text" id="search-input" oninput="renderTable()" placeholder="Buscar por cliente, item ou ID..." class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          <select id="status-filter" onchange="renderTable()" class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ALL">Todos os Status</option>
+            <option value="Pago">Apenas Pagos</option>
+            <option value="Pendente">Apenas Pendentes</option>
+          </select>
+
+          <select id="sort-filter" onchange="renderTable()" class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="ID_ASC">Ordenar: ID (Crescente)</option>
+            <option value="ID_DESC">Ordenar: ID (Decrescente)</option>
+            <option value="VALUE_DESC">Maior Valor</option>
+            <option value="VALUE_ASC">Menor Valor</option>
+            <option value="CLIENT_ASC">Nome do Cliente (A-Z)</option>
+          </select>
+
+          <button onclick="exportCSV()" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-file-csv"></i> Exportar CSV
+          </button>
+
+          <button onclick="openAiAssistant()" class="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Assistente IA
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabela de Pedidos -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                <th class="py-3.5 px-4 w-10 text-center">
+                  <input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll(this)" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                </th>
+                <th class="py-3.5 px-4"># ID</th>
+                <th class="py-3.5 px-4">Cliente</th>
+                <th class="py-3.5 px-4">Produto / Descrição</th>
+                <th class="py-3.5 px-4 text-center">Qtd</th>
+                <th class="py-3.5 px-4 text-right">Preço Un.</th>
+                <th class="py-3.5 px-4 text-right">Total Calculado</th>
+                <th class="py-3.5 px-4 text-center">Status</th>
+                <th class="py-3.5 px-4 text-center">Ações / Pix</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body" class="divide-y divide-slate-100 dark:divide-slate-700/50 text-sm"></tbody>
+          </table>
+        </div>
+        <div id="empty-state" class="hidden p-8 text-center">
+          <i class="fa-solid fa-inbox text-4xl text-slate-300 dark:text-slate-600 mb-2"></i>
+          <p class="text-slate-500 dark:text-slate-400 font-medium">Nenhum pedido encontrado com os filtros aplicados.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: HISTÓRICO DE AUDITORIA & LOGS -->
+    <div id="view-history" class="space-y-6 hidden">
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-slate-900 dark:text-white text-base">Histórico de Atividades & Alterações</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Registro cronológico detalhado de criação, edições e trocas de status dos pedidos</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="history-filter-type" onchange="renderHistoryTable()" class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs rounded-xl px-3 py-2 font-medium focus:outline-none">
+            <option value="ALL">Todas as Ações</option>
+            <option value="Criação">Criação de Pedidos</option>
+            <option value="Status">Mudança de Status</option>
+            <option value="Edição">Edição de Dados</option>
+            <option value="Exclusão">Exclusões</option>
+            <option value="Pix">Configurações Pix</option>
+          </select>
+          <button onclick="exportHistoryCSV()" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-download"></i> Exportar Log
+          </button>
+          <button onclick="clearHistoryLog()" class="px-3 py-2 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-trash"></i> Limpar
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                <th class="py-3.5 px-4">Data / Hora</th>
+                <th class="py-3.5 px-4 text-center">Tipo de Ação</th>
+                <th class="py-3.5 px-4">Descrição do Evento</th>
+                <th class="py-3.5 px-4 text-right">Valor Envolvido</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body" class="divide-y divide-slate-100 dark:divide-slate-700/50 text-xs"></tbody>
+          </table>
+        </div>
+        <div id="history-empty-state" class="hidden p-8 text-center">
+          <i class="fa-solid fa-clock-rotate-left text-4xl text-slate-300 dark:text-slate-600 mb-2"></i>
+          <p class="text-slate-500 dark:text-slate-400 font-medium">Nenhum evento registrado até o momento.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: Novo / Editar Pedido -->
+  <div id="modal-order" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
+      <div class="flex justify-between items-center mb-5">
+        <h3 id="modal-title" class="text-lg font-bold text-slate-900 dark:text-white">Adicionar Novo Pedido</h3>
+        <button onclick="closeModal('modal-order')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="order-form" onsubmit="saveOrder(event)" class="space-y-4">
+        <input type="hidden" id="form-id">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Nome do Cliente</label>
+          <input type="text" id="form-customer" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Item / Descrição</label>
+          <input type="text" id="form-item" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Quantidade</label>
+            <input type="number" min="0" id="form-qty" oninput="updateFormTotal()" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Preço Unitário (R$)</label>
+            <input type="number" step="0.01" min="0" id="form-price" oninput="updateFormTotal()" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+          <span class="text-xs font-semibold text-slate-500">Valor Total Estimado:</span>
+          <span id="form-total-preview" class="text-base font-bold text-brand-600 dark:text-brand-400">R$ 0,00</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Status do Pagamento</label>
+          <select id="form-status" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <option value="Pendente">Pendente</option>
+            <option value="Pago">Pago</option>
+          </select>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" onclick="closeModal('modal-order')" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold">Salvar Pedido</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Cobrança Pix, Mercado Pago & WhatsApp -->
+  <div id="modal-pix" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 text-center relative">
+      <button onclick="closeModal('modal-pix')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+
+      <div class="w-12 h-12 bg-teal-50 dark:bg-teal-950/60 text-pix rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+        <i class="fa-solid fa-qrcode"></i>
+      </div>
+
+      <h3 class="text-base font-bold text-slate-900 dark:text-white" id="pix-modal-client">Cobrança</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5" id="pix-modal-item">Descrição do Item</p>
+
+      <div class="my-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+        <span class="text-xs text-slate-400 block mb-0.5">Valor do Pedido</span>
+        <span id="pix-modal-value" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">R$ 0,00</span>
+      </div>
+
+      <!-- Container do QR Code Dinâmico com Checksum CRC16 -->
+      <div class="bg-white p-3 rounded-xl border border-slate-200 inline-block shadow-inner mb-4">
+        <img id="qrcode-image" src="" alt="QR Code Pix Bacen" class="w-36 h-36 object-contain mx-auto" />
+      </div>
+
+      <div class="space-y-2">
+        <button id="btn-modal-copy-pix" onclick="copyPixCopiaECola()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
+          <i class="fa-solid fa-copy"></i>
+          <span>Copiar Pix Copia e Cola (Bacen)</span>
+        </button>
+
+        <a id="btn-modal-mercado-pago" href="https://mpago.la/13fqdeA" target="_blank" class="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
+          <i class="fa-solid fa-credit-card"></i>
+          <span>Pagar via Mercado Pago</span>
+        </a>
+
+        <button id="btn-whatsapp-send" onclick="sendWhatsAppMessage()" class="w-full py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
+          <i class="fa-brands fa-whatsapp text-lg text-emerald-500"></i>
+          <span>Enviar Lembrete via WhatsApp</span>
+        </button>
+
+        <button id="btn-print-receipt" onclick="printReceipt()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 mt-2">
+          <i class="fa-solid fa-print"></i>
+          <span>Imprimir Recibo / Comprovante</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Configurações de Pagamento -->
+  <div id="modal-pix-settings" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
+      <div class="flex justify-between items-center mb-5">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-gear text-teal-500 text-lg"></i>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Configurações de Pagamento</h3>
+        </div>
+        <button onclick="closeModal('modal-pix-settings')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <form id="pix-settings-form" onsubmit="savePixSettings(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tipo de Chave Pix</label>
+          <select id="setting-pix-type" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+            <option value="CPF">CPF</option>
+            <option value="CNPJ">CNPJ</option>
+            <option value="Telefone">Telefone / Celular</option>
+            <option value="E-mail">E-mail</option>
+            <option value="Chave Aleatória">Chave Aleatória (EVP)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Chave Pix Recebedor</label>
+          <input type="text" id="setting-pix-key" required class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Link de Pagamento (Mercado Pago / Checkout)</label>
+          <input type="url" id="setting-mp-link" placeholder="https://mpago.la/..." class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Nome do Recebedor (Opcional)</label>
+          <input type="text" id="setting-pix-name" placeholder="Ex: João da Silva" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Cidade do Recebedor (Opcional)</label>
+          <input type="text" id="setting-pix-city" placeholder="Ex: RIO DE JANEIRO" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('modal-pix-settings')" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Salvar Configurações</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Assistente IA / Gemini -->
+  <div id="modal-ai" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+          <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+          <h3 class="font-bold text-slate-900 dark:text-white">Assistente de Cobrança Gemini IA</h3>
+        </div>
+        <button onclick="closeModal('modal-ai')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Gere mensagens personalizadas e gentis para envio de cobrança Pix/Mercado Pago aos clientes com pendências.</p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Selecione o Cliente em Atraso:</label>
+          <select id="ai-client-select" onchange="generateAiMessage()" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Mensagem Sugerida pela IA:</label>
+          <textarea id="ai-message-output" rows="5" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs leading-relaxed focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-700 dark:text-slate-200"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="copyAiMessage()" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+            <i class="fa-regular fa-copy"></i> Copiar Mensagem
+          </button>
+          <button onclick="sendAiWhatsApp()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5">
+            <i class="fa-brands fa-whatsapp"></i> Abrir WhatsApp
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LÓGICA JAVASCRIPT COMPLETA COM CÁLCULO CRC16 BACEN PIX -->
+  <script>
+    // Algoritmo CRC16-CCITT Obrigatório para o padrão EMV Co / Pix Banco Central
+    function crc16(payload) {
+      let polynomial = 0x1021;
+      let crc = 0xFFFF;
+
+      for (let i = 0; i < payload.length; i++) {
+        crc ^= (payload.charCodeAt(i) << 8);
+        for (let j = 0; j < 8; j++) {
+          if ((crc & 0x8000) !== 0) {
+            crc = ((crc << 1) ^ polynomial) & 0xFFFF;
+          } else {
+            crc = (crc << 1) & 0xFFFF;
+          }
+        }
+      }
+      return crc.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    // Gerador de Payload Pix EMV Co Oficial
+    function generatePixPayload(key, name, city, amount, txid = '***') {
+      let cleanKey = key.trim().replace(/\s+/g, '');
+      let formattedAmount = parseFloat(amount || 0).toFixed(2);
+      
+      let cleanName = (name || "SISTEMA DE VENDAS").substring(0, 25).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+      let cleanCity = (city || "RIO DE JANEIRO").substring(0, 15).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+      let gui = "0014BR.GOV.BCB.PIX";
+      let keyTag = `01${cleanKey.length.toString().padStart(2, '0')}${cleanKey}`;
+      let merchantAccountInfo = `${gui}${keyTag}`;
+      let merchantAccountTag = `26${merchantAccountInfo.length.toString().padStart(2, '0')}${merchantAccountInfo}`;
+      
+      let mCategory = "52040000";
+      let currency = "5303986";
+      let amountTag = `54${formattedAmount.length.toString().padStart(2, '0')}${formattedAmount}`;
+      let country = "5802BR";
+      let nameTag = `59${cleanName.length.toString().padStart(2, '0')}${cleanName}`;
+      let cityTag = `60${cleanCity.length.toString().padStart(2, '0')}${cleanCity}`;
+      
+      let txidTag = `05${txid.length.toString().padStart(2, '0')}${txid}`;
+      let additionalData = `62${txidTag.length.toString().padStart(2, '0')}${txidTag}`;
+
+      let rawPayload = `000201${merchantAccountTag}${mCategory}${currency}${amountTag}${country}${nameTag}${cityTag}${additionalData}6304`;
+      let checksum = crc16(rawPayload);
+      
+      return `${rawPayload}${checksum}`;
+    }
+
+    const INITIAL_ORDERS = [
+      { id: 1, customer: "Jeferson", item: "Açaí", qty: 0, unitPrice: 10.00, status: "Pendente" },
+      { id: 2, customer: "Marcely", item: "Açaí", qty: 0, unitPrice: 10.00, status: "Pendente" },
+      { id: 3, customer: "Clebson", item: "Açaí 500ml", qty: 2, unitPrice: 18.00, status: "Pendente" },
+      { id: 4, customer: "Ruan", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 5, customer: "Marcia", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 6, customer: "Higor", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 7, customer: "Dudu", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pago" },
+      { id: 8, customer: "Suh", item: "Açaí", qty: 2, unitPrice: 12.00, status: "Pago" },
+      { id: 9, customer: "Gabi", item: "Açaí 500ml", qty: 1, unitPrice: 18.00, status: "Pendente" },
+      { id: 10, customer: "Igor Silva", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 11, customer: "Edmario", item: "Açaí 500ml", qty: 1, unitPrice: 18.00, status: "Pendente" },
+      { id: 12, customer: "Fellipe", item: "Açaí", qty: 2, unitPrice: 10.00, status: "Pago" },
+      { id: 13, customer: "Sandro", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 14, customer: "Igor Costa", item: "Açaí 500ml", qty: 2, unitPrice: 18.00, status: "Pago" },
+      { id: 15, customer: "Gaby V", item: "Açaí", qty: 2, unitPrice: 15.00, status: "Pendente" },
+      { id: 16, customer: "Jose", item: "Açaí 500ml", qty: 1, unitPrice: 18.00, status: "Pendente" },
+      { id: 17, customer: "Pedro", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pago" },
+      { id: 18, customer: "Neto", item: "Marmita P", qty: 1, unitPrice: 160.00, status: "Pago" },
+      { id: 19, customer: "Neto", item: "Marmita P", qty: 1, unitPrice: 160.00, status: "Pago" },
+      { id: 20, customer: "Biel", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 21, customer: "Gomes", item: "Açaí 500ml", qty: 1, unitPrice: 18.00, status: "Pendente" },
+      { id: 22, customer: "Lais", item: "Açaí 500ml", qty: 2, unitPrice: 18.00, status: "Pendente" },
+      { id: 23, customer: "Thays", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 24, customer: "Aline", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 25, customer: "Bia", item: "Açaí 500ml", qty: 2, unitPrice: 18.00, status: "Pendente" },
+      { id: 26, customer: "Bia", item: "Açaí 500ml", qty: 2, unitPrice: 18.00, status: "Pendente" },
+      { id: 27, customer: "Aline", item: "Açaí 500ml", qty: 2, unitPrice: 18.00, status: "Pendente" },
+      { id: 28, customer: "Aline", item: "Açaí 500ml", qty: 2, unitPrice: 18.00, status: "Pendente" },
+      { id: 29, customer: "Mylena", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 30, customer: "Mylena", item: "Açaí", qty: 1, unitPrice: 10.00, status: "Pendente" },
+      { id: 31, customer: "Rian", item: "Açaí 500ml", qty: 1, unitPrice: 18.00, status: "Pendente" }
+    ];
+
+    const DEFAULT_PIX_CONFIG = {
+      key: "10642958947",
+      type: "CPF",
+      name: "Sistema de Vendas",
+      city: "RIO DE JANEIRO",
+      mpLink: "https://mpago.la/13fqdeA"
+    };
+
+    let orders = JSON.parse(localStorage.getItem('pix_orders_db')) || INITIAL_ORDERS;
+    let pixConfig = JSON.parse(localStorage.getItem('pix_config_db')) || DEFAULT_PIX_CONFIG;
+    let historyLogs = JSON.parse(localStorage.getItem('pix_history_logs_db')) || [];
+    let currentPixKey = pixConfig.key;
+    let currentPixPayload = "";
+
+    let activePixOrder = null;
+    let selectedOrderIds = new Set();
+    let statusChartInstance = null;
+    let productsChartInstance = null;
+
+    function formatCurrency(val) {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+    }
+
+    function formatDate(isoStr) {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function addLog(type, description, value = 0) {
+      const logItem = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        type,
+        description,
+        value
+      };
+      historyLogs.unshift(logItem);
+      localStorage.setItem('pix_history_logs_db', JSON.stringify(historyLogs));
+      updateHistoryBadge();
+    }
+
+    function updateHistoryBadge() {
+      const badge = document.getElementById('history-badge-count');
+      if (badge) badge.textContent = historyLogs.length;
+    }
+
+    function switchTab(tab) {
+      const viewOrders = document.getElementById('view-orders');
+      const viewHistory = document.getElementById('view-history');
+      const btnOrders = document.getElementById('tab-btn-orders');
+      const btnHistory = document.getElementById('tab-btn-history');
+
+      if (tab === 'orders') {
+        viewOrders.classList.remove('hidden');
+        viewHistory.classList.add('hidden');
+        btnOrders.className = "py-3 px-4 text-xs font-bold border-b-2 border-brand-600 text-brand-600 dark:text-brand-400 flex items-center gap-2";
+        btnHistory.className = "py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2";
+      } else {
+        viewOrders.classList.add('hidden');
+        viewHistory.classList.remove('hidden');
+        btnHistory.className = "py-3 px-4 text-xs font-bold border-b-2 border-brand-600 text-brand-600 dark:text-brand-400 flex items-center gap-2";
+        btnOrders.className = "py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2";
+        renderHistoryTable();
+      }
+    }
+
+    function renderHistoryTable() {
+      const tbody = document.getElementById('history-table-body');
+      const filterType = document.getElementById('history-filter-type')?.value || 'ALL';
+      const emptyState = document.getElementById('history-empty-state');
+
+      tbody.innerHTML = '';
+
+      let filtered = historyLogs.filter(log => filterType === 'ALL' || log.type === filterType);
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      filtered.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors";
+
+        let typeBadge = '';
+        switch (log.type) {
+          case 'Criação': typeBadge = 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'; break;
+          case 'Status': typeBadge = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'; break;
+          case 'Edição': typeBadge = 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'; break;
+          case 'Exclusão': typeBadge = 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'; break;
+          default: typeBadge = 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
+        }
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-slate-500 whitespace-nowrap">${formatDate(log.timestamp)}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${typeBadge}">${log.type}</span>
+          </td>
+          <td class="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">${log.description}</td>
+          <td class="py-3 px-4 text-right font-bold ${log.value > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}">
+            ${log.value > 0 ? formatCurrency(log.value) : '-'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function clearHistoryLog() {
+      if (confirm("Deseja realmente limpar todo o histórico de logs?")) {
+        historyLogs = [];
+        localStorage.setItem('pix_history_logs_db', JSON.stringify(historyLogs));
+        renderHistoryTable();
+        updateHistoryBadge();
+        showToast("Histórico de logs limpo!");
+      }
+    }
+
+    function exportHistoryCSV() {
+      let csv = "Data Hora,Tipo,Descricao,Valor Envolvido\n";
+      historyLogs.forEach(log => {
+        csv += `"${formatDate(log.timestamp)}","${log.type}","${log.description.replace(/"/g, '""')}",${log.value}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `historico_logs_vendas.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Log de histórico exportado!");
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updatePixDisplays();
+      renderTable();
+      updateKPIs();
+      initPixForm();
+      initCharts();
+      updateHistoryBadge();
+    });
+
+    function toggleAnalyticsView() {
+      const section = document.getElementById('analytics-section');
+      section.classList.toggle('hidden');
+      if (!section.classList.contains('hidden')) updateCharts();
+    }
+
+    function initCharts() {
+      const ctxStatus = document.getElementById('chart-status')?.getContext('2d');
+      const ctxProducts = document.getElementById('chart-products')?.getContext('2d');
+      if (!ctxStatus || !ctxProducts) return;
+
+      statusChartInstance = new Chart(ctxStatus, {
+        type: 'doughnut',
+        data: { labels: ['Pagos', 'Pendentes'], datasets: [{ data: [0, 0], backgroundColor: ['#22c55e', '#f59e0b'] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      productsChartInstance = new Chart(ctxProducts, {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Total em R$', data: [], backgroundColor: '#6366f1' }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      updateCharts();
+    }
+
+    function updateCharts() {
+      if (!statusChartInstance || !productsChartInstance) return;
+
+      let totalPago = 0, totalPendente = 0;
+      const productTotals = {};
+
+      orders.forEach(o => {
+        const val = o.qty * o.unitPrice;
+        if (o.status === 'Pago') totalPago += val;
+        else totalPendente += val;
+        productTotals[o.item] = (productTotals[o.item] || 0) + val;
+      });
+
+      statusChartInstance.data.datasets[0].data = [totalPago, totalPendente];
+      statusChartInstance.update();
+
+      productsChartInstance.data.labels = Object.keys(productTotals);
+      productsChartInstance.data.datasets[0].data = Object.values(productTotals);
+      productsChartInstance.update();
+    }
+
+    function printReceipt() {
+      if (!activePixOrder) return;
+      const total = activePixOrder.qty * activePixOrder.unitPrice;
+      const printWindow = window.open('', '', 'height=600,width=400');
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Comprovante de Pedido #${activePixOrder.id}</title>
+            <style>
+              body { font-family: monospace; padding: 20px; font-size: 14px; }
+              .center { text-align: center; }
+              .line { border-top: 1px dashed #000; margin: 10px 0; }
+              .flex { display: flex; justify-content: space-between; }
+              .bold { font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <div class="center">
+              <h2>COMPROVANTE DE PEDIDO</h2>
+              <p>Pedido #${activePixOrder.id}</p>
+            </div>
+            <div class="line"></div>
+            <p><strong>Cliente:</strong> ${activePixOrder.customer}</p>
+            <p><strong>Item:</strong> ${activePixOrder.item}</p>
+            <p><strong>Quantidade:</strong> ${activePixOrder.qty}</p>
+            <p><strong>Preço Un.:</strong> ${formatCurrency(activePixOrder.unitPrice)}</p>
+            <div class="line"></div>
+            <div class="flex bold">
+              <span>TOTAL:</span>
+              <span>${formatCurrency(total)}</span>
+            </div>
+            <div class="line"></div>
+            <p><strong>Status:</strong> ${activePixOrder.status.toUpperCase()}</p>
+            <p><strong>Chave Pix:</strong> ${pixConfig.key} (${pixConfig.type})</p>
+            ${pixConfig.mpLink ? `<p><strong>Mercado Pago:</strong> ${pixConfig.mpLink}</p>` : ''}
+            <br>
+            <div class="center">
+              <p>Obrigado pela preferência!</p>
+            </div>
+          </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    function toggleSelectOrder(id, checkbox) {
+      if (checkbox.checked) selectedOrderIds.add(id);
+      else selectedOrderIds.delete(id);
+      updateBulkBar();
+    }
+
+    function toggleSelectAll(masterCheckbox) {
+      const checkboxes = document.querySelectorAll('.order-checkbox');
+      selectedOrderIds.clear();
+      checkboxes.forEach(cb => {
+        cb.checked = masterCheckbox.checked;
+        if (masterCheckbox.checked) selectedOrderIds.add(parseInt(cb.dataset.id));
+      });
+      updateBulkBar();
+    }
+
+    function updateBulkBar() {
+      const bar = document.getElementById('bulk-actions-bar');
+      const countEl = document.getElementById('bulk-count');
+      if (selectedOrderIds.size > 0) {
+        bar.classList.remove('hidden');
+        countEl.textContent = `${selectedOrderIds.size} selecionado(s)`;
+      } else {
+        bar.classList.add('hidden');
+      }
+    }
+
+    function clearBulkSelection() {
+      selectedOrderIds.clear();
+      const masterCB = document.getElementById('select-all-checkbox');
+      if (masterCB) masterCB.checked = false;
+      document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = false);
+      updateBulkBar();
+    }
+
+    function bulkMarkAsPaid() {
+      let count = 0;
+      orders.forEach(o => {
+        if (selectedOrderIds.has(o.id) && o.status !== 'Pago') {
+          o.status = 'Pago';
+          count++;
+        }
+      });
+      saveState();
+      addLog('Status', `Ação em lote: ${count} pedido(s) marcado(s) como Pago`);
+      showToast(`${selectedOrderIds.size} pedido(s) marcado(s) como Pago!`);
+      clearBulkSelection();
+    }
+
+    function bulkDelete() {
+      const count = selectedOrderIds.size;
+      orders = orders.filter(o => !selectedOrderIds.has(o.id));
+      saveState();
+      addLog('Exclusão', `Exclusão em lote de ${count} pedido(s)`);
+      showToast(`${count} pedido(s) removido(s)!`);
+      clearBulkSelection();
+    }
+
+    function saveState() {
+      localStorage.setItem('pix_orders_db', JSON.stringify(orders));
+      renderTable();
+      updateKPIs();
+      updateCharts();
+    }
+
+    function updatePixDisplays() {
+      currentPixKey = pixConfig.key;
+      document.getElementById('header-pix-display').textContent = `Pix: ${pixConfig.key}`;
+      document.getElementById('card-pix-key-display').textContent = pixConfig.key;
+      document.getElementById('card-pix-type-badge').textContent = pixConfig.type;
+      
+      const mpLink = pixConfig.mpLink || "https://mpago.la/13fqdeA";
+      const headerMp = document.getElementById('header-mp-link');
+      if (headerMp) headerMp.href = mpLink;
+      const cardMp = document.getElementById('card-mp-btn');
+      if (cardMp) cardMp.href = mpLink;
+    }
+
+    function initPixForm() {
+      document.getElementById('setting-pix-type').value = pixConfig.type || "CPF";
+      document.getElementById('setting-pix-key').value = pixConfig.key || "10642958947";
+      document.getElementById('setting-pix-name').value = pixConfig.name || "";
+      document.getElementById('setting-pix-city').value = pixConfig.city || "RIO DE JANEIRO";
+      document.getElementById('setting-mp-link').value = pixConfig.mpLink || "https://mpago.la/13fqdeA";
+    }
+
+    function savePixSettings(event) {
+      event.preventDefault();
+      const newKey = document.getElementById('setting-pix-key').value.trim();
+      const newType = document.getElementById('setting-pix-type').value;
+      const newName = document.getElementById('setting-pix-name').value.trim();
+      const newCity = document.getElementById('setting-pix-city').value.trim();
+      const newMp = document.getElementById('setting-mp-link').value.trim();
+
+      if (!newKey) {
+        showToast("Por favor, insira uma chave Pix válida!");
+        return;
+      }
+
+      const oldKey = pixConfig.key;
+      pixConfig = {
+        key: newKey,
+        type: newType,
+        name: newName || "Sistema de Vendas",
+        city: newCity || "RIO DE JANEIRO",
+        mpLink: newMp || "https://mpago.la/13fqdeA"
+      };
+
+      localStorage.setItem('pix_config_db', JSON.stringify(pixConfig));
+      updatePixDisplays();
+      closeModal('modal-pix-settings');
+      addLog('Pix', `Chave Pix atualizada de ${oldKey} para ${newKey}`);
+      showToast("Configurações atualizadas com sucesso!");
+    }
+
+    function copyRawPixKey() {
+      copyToClipboard(pixConfig.key);
+      showToast("Chave Pix copiada!");
+    }
+
+    function copyPixCopiaECola() {
+      if (!currentPixPayload) return;
+      copyToClipboard(currentPixPayload);
+      showToast("Pix Copia e Cola (Bacen) copiado!");
+    }
+
+    function copyToClipboard(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+
+    function openPixModal(id) {
+      const order = orders.find(o => o.id === id);
+      if (!order) return;
+
+      activePixOrder = order;
+      const total = order.qty * order.unitPrice;
+
+      document.getElementById('pix-modal-client').textContent = `Cobrança - ${order.customer}`;
+      document.getElementById('pix-modal-item').textContent = `${order.qty}x ${order.item}`;
+      document.getElementById('pix-modal-value').textContent = formatCurrency(total);
+
+      const btnMp = document.getElementById('btn-modal-mercado-pago');
+      if (btnMp) btnMp.href = pixConfig.mpLink || "https://mpago.la/13fqdeA";
+
+      // Gerar Payload Válido com CRC16 do Bacen
+      currentPixPayload = generatePixPayload(
+        pixConfig.key,
+        pixConfig.name || "Sistema de Vendas",
+        pixConfig.city || "RIO DE JANEIRO",
+        total
+      );
+
+      // Renderizar QR Code via URL de imagem estável
+      const qrImg = document.getElementById('qrcode-image');
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentPixPayload)}`;
+
+      openModal('modal-pix');
+    }
+
+    function sendWhatsAppMessage() {
+      if (!activePixOrder) return;
+      const total = activePixOrder.qty * activePixOrder.unitPrice;
+      const mpUrl = pixConfig.mpLink || "https://mpago.la/13fqdeA";
+      const text = `Olá *${activePixOrder.customer}*! Tudo bem?\n\nSegue a cobrança referente ao item: *${activePixOrder.item}* (Qtd: ${activePixOrder.qty}).\n*Valor Total:* ${formatCurrency(total)}\n\n*Chave Pix (${pixConfig.type}):* ${pixConfig.key}\n*Pix Copia e Cola:* ${currentPixPayload}\n*Pagar pelo Mercado Pago:* ${mpUrl}\n\nQualquer dúvida estou à disposição!`;
+      
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+
+    function generateAiMessage() {
+      const selectId = document.getElementById('ai-client-select').value;
+      const order = orders.find(o => o.id == selectId);
+      if (!order) return;
+
+      const total = order.qty * order.unitPrice;
+      const mpUrl = pixConfig.mpLink || "https://mpago.la/13fqdeA";
+      const tempPayload = generatePixPayload(pixConfig.key, pixConfig.name, pixConfig.city, total);
+
+      const promptTemplates = [
+        `Olá, ${order.customer}! Passando para lembrar com carinho sobre o pedido do ${order.item} no valor de ${formatCurrency(total)}.\n\nPix (${pixConfig.type}): ${pixConfig.key}\nPix Copia e Cola: ${tempPayload}\nMercado Pago: ${mpUrl}\n\nMuito obrigado!`,
+        `Oi ${order.customer}, tudo bem? Para facilitar a quitação do seu ${order.item} (${formatCurrency(total)}), você pode usar o Pix: ${pixConfig.key} ou pelo Mercado Pago: ${mpUrl}. Qualquer dúvida me avise!`,
+        `Olá ${order.customer}! Tudo certo? Lembrete do pedido de ${order.item} (${formatCurrency(total)}).\n\nPix: ${pixConfig.key}\nLink Mercado Pago: ${mpUrl}\n\nAgradecemos a preferência!`
+      ];
+
+      const randomIndex = Math.floor(Math.random() * promptTemplates.length);
+      document.getElementById('ai-message-output').value = promptTemplates[randomIndex];
+    }
+
+    function copyAiMessage() {
+      const txt = document.getElementById('ai-message-output').value;
+      copyToClipboard(txt);
+      showToast("Mensagem da IA copiada com sucesso!");
+    }
+
+    function sendAiWhatsApp() {
+      const txt = document.getElementById('ai-message-output').value;
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(txt)}`;
+      window.open(url, '_blank');
+    }
+
+    function exportCSV() {
+      let csv = "ID,Cliente,Item,Quantidade,Preco Unitario,Total,Status\n";
+      orders.forEach(o => {
+        const total = o.qty * o.unitPrice;
+        csv += `${o.id},"${o.customer}","${o.item}",${o.qty},${o.unitPrice},${total},"${o.status}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `relatorio_pedidos_pix.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Relatório CSV gerado e baixado!");
+    }
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-xl border border-slate-700/50 flex items-center gap-2 animate-bounce pointer-events-auto transition-all";
+      toast.innerHTML = `<i class="fa-solid fa-circle-info text-brand-500"></i> ${message}`;
+      
+      container.appendChild(toast);
+      setTimeout(() => { toast.remove(); }, 3000);
+    }
+
+    function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('hidden');
+        if (modalId === 'modal-ai') populateAiClientSelect();
+      }
+    }
+
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) modal.classList.add('hidden');
+      if (modalId === 'modal-order') resetOrderForm();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('orders-table-body');
+      const searchVal = (document.getElementById('search-input')?.value || '').toLowerCase();
+      const statusVal = document.getElementById('status-filter')?.value || 'ALL';
+      const sortVal = document.getElementById('sort-filter')?.value || 'ID_ASC';
+      const emptyState = document.getElementById('empty-state');
+
+      tbody.innerHTML = '';
+
+      let filtered = orders.filter(o => {
+        const matchesSearch = o.customer.toLowerCase().includes(searchVal) ||
+                              o.item.toLowerCase().includes(searchVal) ||
+                              o.id.toString().includes(searchVal);
+        const matchesStatus = statusVal === 'ALL' || o.status === statusVal;
+        return matchesSearch && matchesStatus;
+      });
+
+      filtered.sort((a, b) => {
+        const totalA = a.qty * a.unitPrice;
+        const totalB = b.qty * b.unitPrice;
+        if (sortVal === 'ID_ASC') return a.id - b.id;
+        if (sortVal === 'ID_DESC') return b.id - a.id;
+        if (sortVal === 'VALUE_DESC') return totalB - totalA;
+        if (sortVal === 'VALUE_ASC') return totalA - totalB;
+        if (sortVal === 'CLIENT_ASC') return a.customer.localeCompare(b.customer);
+        return 0;
+      });
+
+      if (filtered.length === 0) emptyState.classList.remove('hidden');
+      else emptyState.classList.add('hidden');
+
+      filtered.forEach(o => {
+        const total = o.qty * o.unitPrice;
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors";
+
+        const isPago = o.status === 'Pago';
+        const badgeClass = isPago
+          ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+          : 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+
+        const isChecked = selectedOrderIds.has(o.id) ? 'checked' : '';
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-center">
+            <input type="checkbox" data-id="${o.id}" ${isChecked} onclick="toggleSelectOrder(${o.id}, this)" class="order-checkbox rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+          </td>
+          <td class="py-3 px-4 font-semibold text-slate-500">#${o.id}</td>
+          <td class="py-3 px-4 font-semibold text-slate-900 dark:text-white">${o.customer}</td>
+          <td class="py-3 px-4 text-slate-600 dark:text-slate-300">${o.item}</td>
+          <td class="py-3 px-4 text-center font-medium">${o.qty}</td>
+          <td class="py-3 px-4 text-right text-slate-600 dark:text-slate-300">${formatCurrency(o.unitPrice)}</td>
+          <td class="py-3 px-4 text-right font-bold ${isPago ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}">${formatCurrency(total)}</td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="toggleOrderStatus(${o.id})" class="px-2.5 py-1 text-xs font-semibold rounded-full border ${badgeClass} transition-transform active:scale-95" title="Clique para alterar status">
+              ${o.status}
+            </button>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <div class="flex items-center justify-center gap-2">
+              <button onclick="openPixModal(${o.id})" class="p-1.5 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/50 rounded-lg transition-colors" title="Gerar QR Code / Cobrar Pix">
+                <i class="fa-solid fa-qrcode text-base"></i>
+              </button>
+              <button onclick="editOrder(${o.id})" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-colors" title="Editar Pedido">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteOrder(${o.id})" class="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors" title="Excluir Pedido">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateKPIs() {
+      let totalGeral = 0, totalPago = 0, totalPendente = 0;
+      let countPago = 0, countPendente = 0;
+
+      orders.forEach(o => {
+        const total = o.qty * o.unitPrice;
+        totalGeral += total;
+        if (o.status === 'Pago') {
+          totalPago += total;
+          countPago++;
+        } else {
+          totalPendente += total;
+          countPendente++;
+        }
+      });
+
+      document.getElementById('kpi-total-geral').textContent = formatCurrency(totalGeral);
+      document.getElementById('kpi-qtd-pedidos').textContent = orders.length;
+
+      document.getElementById('kpi-total-pago').textContent = formatCurrency(totalPago);
+      document.getElementById('kpi-pago-count').textContent = `${countPago} pagos`;
+
+      document.getElementById('kpi-total-pendente').textContent = formatCurrency(totalPendente);
+      document.getElementById('kpi-pendente-count').textContent = `${countPendente} pendentes`;
+    }
+
+    function toggleOrderStatus(id) {
+      const order = orders.find(o => o.id === id);
+      if (order) {
+        const oldStatus = order.status;
+        order.status = order.status === 'Pago' ? 'Pendente' : 'Pago';
+        const total = order.qty * order.unitPrice;
+        saveState();
+        addLog('Status', `Status do Pedido #${id} (${order.customer}) alterado de ${oldStatus} para ${order.status}`, total);
+        showToast(`Pedido #${id} marcado como ${order.status}!`);
+      }
+    }
+
+    function saveOrder(event) {
+      event.preventDefault();
+      const idInput = document.getElementById('form-id').value;
+      const customer = document.getElementById('form-customer').value.trim();
+      const item = document.getElementById('form-item').value.trim();
+      const qty = parseInt(document.getElementById('form-qty').value) || 0;
+      const unitPrice = parseFloat(document.getElementById('form-price').value) || 0;
+      const status = document.getElementById('form-status').value;
+
+      if (!customer || !item) {
+        showToast("Por favor preencha o nome do cliente e o item.");
+        return;
+      }
+
+      const total = qty * unitPrice;
+
+      if (idInput) {
+        const order = orders.find(o => o.id == idInput);
+        if (order) {
+          order.customer = customer;
+          order.item = item;
+          order.qty = qty;
+          order.unitPrice = unitPrice;
+          order.status = status;
+          addLog('Edição', `Pedido #${idInput} de ${customer} atualizado (${item}, Qtd: ${qty})`, total);
+          showToast(`Pedido #${idInput} atualizado!`);
+        }
+      } else {
+        const newId = orders.length > 0 ? Math.max(...orders.map(o => o.id)) + 1 : 1;
+        orders.push({ id: newId, customer, item, qty, unitPrice, status });
+        addLog('Criação', `Novo Pedido #${newId} criado para ${customer} (${item}, Qtd: ${qty})`, total);
+        showToast(`Pedido #${newId} criado com sucesso!`);
+      }
+
+      saveState();
+      closeModal('modal-order');
+      resetOrderForm();
+    }
+
+    function editOrder(id) {
+      const order = orders.find(o => o.id === id);
+      if (!order) return;
+
+      document.getElementById('modal-title').textContent = `Editar Pedido #${order.id}`;
+      document.getElementById('form-id').value = order.id;
+      document.getElementById('form-customer').value = order.customer;
+      document.getElementById('form-item').value = order.item;
+      document.getElementById('form-qty').value = order.qty;
+      document.getElementById('form-price').value = order.unitPrice;
+      document.getElementById('form-status').value = order.status;
+
+      updateFormTotal();
+      openModal('modal-order');
+    }
+
+    function deleteOrder(id) {
+      const order = orders.find(o => o.id === id);
+      if (order) {
+        const total = order.qty * order.unitPrice;
+        addLog('Exclusão', `Pedido #${id} de ${order.customer} removido`, total);
+      }
+      orders = orders.filter(o => o.id !== id);
+      saveState();
+      showToast(`Pedido #${id} removido.`);
+    }
+
+    function resetOrderForm() {
+      document.getElementById('order-form').reset();
+      document.getElementById('form-id').value = '';
+      document.getElementById('modal-title').textContent = 'Adicionar Novo Pedido';
+      document.getElementById('form-total-preview').textContent = 'R$ 0,00';
+    }
+
+    function updateFormTotal() {
+      const qty = parseFloat(document.getElementById('form-qty').value) || 0;
+      const price = parseFloat(document.getElementById('form-price').value) || 0;
+      document.getElementById('form-total-preview').textContent = formatCurrency(qty * price);
+    }
+
+    function populateAiClientSelect() {
+      const select = document.getElementById('ai-client-select');
+      select.innerHTML = '';
+
+      const pendingOrders = orders.filter(o => o.status === 'Pendente');
+      if (pendingOrders.length === 0) {
+        select.innerHTML = '<option value="">Nenhum pedido pendente encontrado</option>';
+        document.getElementById('ai-message-output').value = '';
+        return;
+      }
+
+      pendingOrders.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = `${o.customer} - ${o.item} (${formatCurrency(o.qty * o.unitPrice)})`;
+        select.appendChild(opt);
+      });
+
+      generateAiMessage();
+    }
+
+    function openAiAssistant() {
+      openModal('modal-ai');
+    }
+  </script>
+</body>
+</html>
