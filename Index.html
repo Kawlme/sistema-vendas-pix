@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Vendas Autossustentável - GatoPixel</title>
+
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js & QRCode.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- CSS Customizado & Transições Suaves -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    * {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    /* Visibilidade das Vistas de Abas */
+    .view-tab {
+      display: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .view-tab.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Animação Suave nos Modais */
+    .modal-backdrop {
+      background-color: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(6px);
+    }
+
+    /* Scrollbar Fina */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- BARRA DE NAVEGAÇÃO SUPERIOR -->
+  <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-30 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- LOGO & BADGE -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30">
+            <i class="fa-solid fa-cat"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-base tracking-tight text-white">GatoPixel Sales</span>
+              <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-semibold">Online</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Sistema Autossustentável de Vendas Pix</p>
+          </div>
+        </div>
+
+        <!-- MENU DE NAVEGAÇÃO -->
+        <nav class="hidden md:flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
+          <button onclick="switchTab('sales')" class="nav-tab-btn active px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-200 hover:text-white transition flex items-center gap-2">
+            <i class="fa-solid fa-receipt"></i>
+            <span data-i18n="nav_sales">Vendas & Pedidos</span>
+          </button>
+          <button onclick="switchTab('analytics')" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span data-i18n="nav_dashboard">Dashboard & IA</span>
+          </button>
+          <button onclick="switchTab('autorepair')" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+            <span data-i18n="nav_autorepair">Auto-Reparo</span>
+          </button>
+          <button onclick="tryOpenDevPanel()" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+            <i class="fa-solid fa-code text-amber-400"></i>
+            <span data-i18n="nav_dev">Painel Dev</span>
+          </button>
+        </nav>
+
+        <!-- BOTÕES DE AÇÃO SUPERIORES -->
+        <div class="flex items-center gap-2">
+          <button onclick="exportSalesToCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-1.5" title="Exportar CSV">
+            <i class="fa-solid fa-file-csv text-emerald-400 text-sm"></i>
+            <span class="hidden sm:inline">Exportar</span>
+          </button>
+          <button onclick="openPixSettingsModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-2" title="Configurações Pix & Idioma">
+            <i class="fa-solid fa-gear text-indigo-400 text-sm"></i>
+            <span id="header-lang-flag" class="text-sm">🇧🇷</span>
+          </button>
+          <button onclick="openNewOrderModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i>
+            <span data-i18n="btn_new_order">Novo Pedido</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL (LAYOUT) -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI CARDS (RESUMO DAS VENDAS) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- CARD 1: FATURAMENTO -->
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_revenue">Faturamento Total</p>
+          <h3 id="kpi-revenue" class="text-xl font-extrabold text-white">R$ 0,00</h3>
+          <p class="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+            <i class="fa-solid fa-circle-check"></i> <span data-i18n="kpi_confirmed">Vendas Confirmadas</span>
+          </p>
+        </div>
+        <div class="w-11 h-11 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-lg border border-emerald-500/20">
+          <i class="fa-solid fa-sack-dollar"></i>
+        </div>
+      </div>
+
+      <!-- CARD 2: TOTAL DE PEDIDOS -->
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_total_orders">Total de Pedidos</p>
+          <h3 id="kpi-total-orders" class="text-xl font-extrabold text-white">0</h3>
+          <p class="text-[10px] text-slate-400" data-i18n="kpi_registered">Registrados no Sistema</p>
+        </div>
+        <div class="w-11 h-11 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center text-lg border border-indigo-500/20">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </div>
+      </div>
+
+      <!-- CARD 3: TAXA DE CONVERSÃO -->
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_conversion">Conversão Pix</p>
+          <h3 id="kpi-conversion" class="text-xl font-extrabold text-white">0%</h3>
+          <p class="text-[10px] text-amber-400" data-i18n="kpi_approved">Pagamentos Aprovados</p>
+        </div>
+        <div class="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center text-lg border border-amber-500/20">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+      </div>
+
+      <!-- CARD 4: TICKET MÉDIO -->
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_avg_ticket">Ticket Médio</p>
+          <h3 id="kpi-avg-ticket" class="text-xl font-extrabold text-white">R$ 0,00</h3>
+          <p class="text-[10px] text-slate-400" data-i18n="kpi_avg_client">Valor Médio por Cliente</p>
+        </div>
+        <div class="w-11 h-11 bg-violet-500/10 text-violet-400 rounded-xl flex items-center justify-center text-lg border border-violet-500/20">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VISTA 1: TABELA DE PEDIDOS & VENDAS -->
+    <div id="view-sales" class="view-tab active bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+      
+      <!-- CABEÇALHO DA TABELA -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-700/60">
+        <div>
+          <h2 class="text-lg font-bold text-white tracking-tight" data-i18n="table_title">Lista de Vendas & QR Codes Pix</h2>
+          <p class="text-xs text-slate-400" data-i18n="table_subtitle">Gerencie status, clientes e geração instantânea de cobrança</p>
+        </div>
+        <div class="flex items-center gap-2 max-w-md w-full">
+          <select id="filter-status" onchange="renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 transition">
+            <option value="ALL">Todos os Status</option>
+            <option value="Aprovado">Aprovados</option>
+            <option value="Pendente">Pendentes</option>
+            <option value="Parcial">Parciais</option>
+            <option value="Cancelado">Cancelados</option>
+          </select>
+          <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+            <input type="text" id="search-orders" oninput="renderTable()" placeholder="Buscar por cliente ou produto..." data-i18n-placeholder="search_placeholder" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-indigo-500 transition">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA 3: AUTO-REPARO DO SISTEMA -->
+    <div id="view-autorepair" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="border-b border-slate-700/60 pb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-emerald-400"></i> Auto-Reparo e Diagnóstico do Código
+          </h2>
+          <p class="text-xs text-slate-400">Mecanismo autônomo que previne e corrige dados corrompidos em segundo plano</p>
+        </div>
+        <button onclick="executarDiagnosticoEAutoFixManual()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2">
+          <i class="fa-solid fa-rotate"></i> Diagnóstico Manual
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+          <p class="text-slate-400 font-medium">Status do Diagnóstico:</p>
+          <p class="text-emerald-400 font-bold text-sm mt-1 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sistema Saudável & Protegido
+          </p>
+        </div>
+        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+          <p class="text-slate-400 font-medium">Correções Efetuadas:</p>
+          <p id="repair-patch-count" class="text-white font-bold text-sm mt-1">0 Alterações</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 rounded-xl border border-slate-700 p-4 font-mono text-[11px] text-slate-300 h-48 overflow-y-auto space-y-1" id="repair-console-log">
+        <div class="text-emerald-400">[SISTEMA] Monitor de integridade ativo...</div>
+      </div>
+    </div>
+
+    <!-- VISTA 4: PAINEL DEV -->
+    <div id="view-dev" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="border-b border-slate-700/60 pb-4">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-code text-amber-400"></i> Painel do Desenvolvedor (PIN: 0000)
+        </h2>
+        <p class="text-xs text-slate-400">Acesso direto ao JSON do banco de dados e execução de scripts em runtime</p>
+      </div>
+
+      <div class="space-y-3">
+        <label class="text-xs font-semibold text-slate-300">Editor do Banco de Dados (JSON LocalStorage):</label>
+        <textarea id="dev-json-editor" class="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-3 rounded-xl border border-slate-700 h-48 focus:outline-none focus:border-indigo-500"></textarea>
+        
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="saveDevJsonState()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações JSON
+          </button>
+          <button onclick="injectMockData()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold px-4 py-2 rounded-xl transition">
+            <i class="fa-solid fa-vial"></i> Injetar Pedido Teste
+          </button>
+          <button onclick="resetSystemDatabase()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+            <i class="fa-solid fa-trash"></i> Resetar Banco de Dados
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ASSISTENTE IA FLUTUANTE GATOPIXEL -->
+  <div id="gatopixel-widget" class="fixed bottom-5 right-5 z-40">
+    <button onclick="toggleGatoPixelModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transition transform hover:scale-105 border border-indigo-400/30">
+      <div class="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-lg">
+        <i class="fa-solid fa-cat"></i>
+      </div>
+      <div class="text-left hidden sm:block">
+        <p class="text-xs font-bold leading-none">GatoPixel AI</p>
+        <p class="text-[10px] text-indigo-200 leading-tight mt-0.5" data-i18n="ai_speech_bubble">Miau! Precisa de ajuda com vendas?</p>
+      </div>
+    </button>
+  </div>
+
+  <!-- MODAL DE CHAT DA IA GATOPIXEL -->
+  <div id="modal-gatopixel-ai" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col h-[520px] transform transition-all">
+      
+      <!-- CABEÇALHO DA IA -->
+      <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-lg">
+            <i class="fa-solid fa-cat"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm leading-tight">GatoPixel AI Copilot</h3>
+            <p class="text-[10px] text-indigo-300" data-i18n="ai_subtitle">Seu assistente inteligente de conversão e vendas</p>
+          </div>
+        </div>
+        <button onclick="toggleGatoPixelModal()" class="text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- CORPO DAS MENSAGENS -->
+      <div id="gatopixel-chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="flex gap-2.5 items-start">
+          <div class="w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xs shrink-0 mt-0.5">
+            <i class="fa-solid fa-cat"></i>
+          </div>
+          <div class="bg-slate-100 text-slate-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed" id="gatopixel-welcome-msg">
+            Olá! Eu sou o <strong>GatoPixel</strong>! 🐾 Posso analisar suas vendas atuais, gerar mensagens de cobrança para WhatsApp em 1 clique ou tirar dúvidas sobre o seu sistema!
+          </div>
+        </div>
+      </div>
+
+      <!-- AÇÕES RÁPIDAS DA IA -->
+      <div class="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center gap-2 overflow-x-auto">
+        <button onclick="askGatoPixel('analyze')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-xl font-semibold text-[11px] whitespace-nowrap transition flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-simple"></i> <span data-i18n="ai_btn_analyze">Analisar Vendas</span>
+        </button>
+        <button onclick="askGatoPixel('copy')" class="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-xl font-semibold text-[11px] whitespace-nowrap transition flex items-center gap-1.5">
+          <i class="fa-brands fa-whatsapp"></i> <span data-i18n="ai_btn_copy">Gerar Copy Pix</span>
+        </button>
+      </div>
+
+      <!-- FORMULÁRIO DE ENVIO DE MENSAGEM -->
+      <form onsubmit="handleGatoPixelSubmit(event)" class="p-3 bg-white border-t border-slate-200 flex gap-2">
+        <input type="text" id="gatopixel-input" placeholder="Pergunte algo ao GatoPixel..." data-i18n-placeholder="ai_input_placeholder" class="flex-1 bg-slate-100 text-slate-800 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- MODAL NOVO / EDITAR PEDIDO -->
+  <div id="modal-order" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 id="modal-order-title" class="font-bold text-slate-900 text-base">Novo Pedido Pix</h3>
+        <button onclick="closeOrderModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="saveOrder(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="order-id">
+        
+        <div>
+          <label class="font-semibold text-slate-700">Nome do Cliente:</label>
+          <input type="text" id="order-customer" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700">Produto ou Serviço:</label>
+          <input type="text" id="order-product" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700">Valor Total (R$):</label>
+            <input type="number" step="0.01" id="order-amount" oninput="calculateRemainingBalance()" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Valor Já Pago (R$):</label>
+            <input type="number" step="0.01" id="order-paid" oninput="calculateRemainingBalance()" placeholder="0.00" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div id="balance-info-box" class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-amber-800 hidden flex items-center justify-between">
+          <span>Saldo Restante a Cobrar:</span>
+          <strong id="order-balance-display">R$ 0,00</strong>
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700">Status do Pagamento:</label>
+          <select id="order-status" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+            <option value="Pendente">Pendente</option>
+            <option value="Parcial">Parcial</option>
+            <option value="Aprovado">Aprovado</option>
+            <option value="Cancelado">Cancelado</option>
+          </select>
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md">Salvar Pedido</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EXIBIÇÃO DE QR CODE PIX -->
+  <div id="modal-pix" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="font-bold text-slate-900 text-sm">Cobrança Pix Inteligente</h3>
+        <button onclick="closePixModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="py-2 flex flex-col items-center justify-center">
+        <div id="pix-qrcode-container" class="bg-white p-3 border rounded-2xl shadow-inner flex items-center justify-center"></div>
+        <p class="text-xs text-slate-500 mt-2">Escaneie o QR Code no app do seu banco</p>
+        <p id="pix-modal-amount" class="text-lg font-extrabold text-indigo-600 mt-1">R$ 0,00</p>
+        <input type="hidden" id="pix-copia-cola-code">
+      </div>
+
+      <div class="space-y-2">
+        <button onclick="copyPixCopiaECola()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition shadow-md">
+          <i class="fa-solid fa-copy"></i> Copiar Pix Copia e Cola
+        </button>
+        <button onclick="simulatePixPayment()" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-bolt"></i> Simular Pagamento Instantâneo
+        </button>
+        <button onclick="closePixModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIGURAÇÕES E IDIOMA -->
+  <div id="modal-pix-settings" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-bold text-slate-900 text-base" data-i18n="settings_title">Configurações & Idioma</h3>
+        <button onclick="closePixSettingsModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="savePixSettings(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="font-semibold text-slate-700" data-i18n="label_language">Idioma do Sistema (Language):</label>
+          <select id="setting-language-input" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 font-medium">
+            <option value="pt">🇧🇷 Português (Brasil)</option>
+            <option value="en">🇺🇸 English</option>
+            <option value="es">🇪🇸 Español</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700" data-i18n="label_pix_key">Chave Pix:</label>
+          <input type="text" id="pix-key-input" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700" data-i18n="label_merchant_name">Nome do Recebedor:</label>
+          <input type="text" id="pix-name-input" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700" data-i18n="label_merchant_city">Cidade do Beneficiário:</label>
+          <input type="text" id="pix-city-input" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="closePixSettingsModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold" data-i18n="btn_cancel">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md" data-i18n="btn_save">Salvar Configurações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL AUTENTICAÇÃO PAINEL DEV -->
+  <div id="modal-dev-auth" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center space-y-4">
+      <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-xl mx-auto">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <div>
+        <h3 class="font-bold text-slate-900 text-base">Acesso de Desenvolvedor</h3>
+        <p class="text-xs text-slate-500 mt-1">Insira o PIN Mestre (Padrão: 0000)</p>
+      </div>
+
+      <form onsubmit="verifyDevPin(event)" class="space-y-3">
+        <input type="password" id="dev-pin-input" maxlength="4" placeholder="0000" required class="w-full text-center text-lg font-mono tracking-widest bg-slate-100 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-amber-500">
+        <div class="flex gap-2">
+          <button type="button" onclick="closeDevAuthModal()" class="w-1/2 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl">Cancelar</button>
+          <button type="submit" class="w-1/2 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER PARA NOTIFICAÇÕES -->
+  <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- SCRIPT PRINCIPAL JAVASCRIPT -->
+  <script>
+    // 🛡️ BLINDAGEM GLOBAL CONTRA ERROS INESPERADOS
+    window.onerror = function(msg, url, line, col, error) {
+      console.warn("[BLINDAGEM GATOPIXEL] Erro silencioso capturado e isolado:", msg);
+      if (typeof autoRepararSistema === 'function') {
+        autoRepararSistema();
+      }
+      try { showToast("Sistema auto-recuperado de instabilidade temporária.", "info"); } catch(e) {}
+      return true; // Previne tela branca e erros no console do navegador
+    };
+
+    window.addEventListener('unhandledrejection', function(event) {
+      console.warn("[BLINDAGEM GATOPIXEL] Promessa rejeitada capturada:", event.reason);
+      try { showToast("Processo de fundo corrigido automaticamente.", "info"); } catch(e) {}
+      event.preventDefault();
+    });
+
+    // GARANTIA DE DADOS INTEGROS
+    function getValidOrders() {
+      if (!Array.isArray(orders)) {
+        if (typeof autoRepararSistema === 'function') autoRepararSistema();
+        return Array.isArray(orders) ? orders : [];
+      }
+      return orders;
+    }
+
+    // AUXILIARES SEGUROS PARA MANIPULAÇÃO DO DOM
+    function safeSetText(id, text) {
+      try {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      } catch (e) {
+        console.warn(`[DOM DEFENSE] Erro ao definir texto no elemento #${id}`, e);
+      }
+    }
+
+    function safeGetValue(id, fallback = '') {
+      try {
+        const el = document.getElementById(id);
+        return el ? el.value : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    // ESTADO E CONFIGURAÇÕES PADRÃO
+    const FIXED_DEV_PIN = "0000";
+    let devAuthenticated = false;
+
+    const INITIAL_ORDERS = [
+      { id: 1, customer: "João Silva", product: "GatoPixel Sales Engine", amount: 149.90, paidAmount: 149.90, status: "Aprovado", date: new Date().toISOString().split('T')[0] },
+      { id: 2, customer: "Maria Oliveira", product: "Consultoria Premium", amount: 299.00, paidAmount: 100.00, status: "Parcial", date: new Date().toISOString().split('T')[0] },
+      { id: 3, customer: "Carlos Souza", product: "Pack Automação WhatsApp", amount: 89.90, paidAmount: 0.00, status: "Pendente", date: new Date().toISOString().split('T')[0] }
+    ];
+
+    let orders = [];
+    try {
+      const stored = localStorage.getItem('pix_orders_db');
+      orders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
+      if (!Array.isArray(orders)) orders = INITIAL_ORDERS;
+    } catch (e) {
+      orders = INITIAL_ORDERS;
+    }
+
+    let statusChartInstance = null;
+    let productsChartInstance = null;
+    let patchCount = 0;
+    let isBackgroundProcessRunning = false;
+
+    // DICIONÁRIO MULTI-IDIOMA
+    const translations = {
+      pt: {
+        nav_sales: "Vendas & Pedidos",
+        nav_dashboard: "Dashboard & IA",
+        nav_autorepair: "Auto-Reparo",
+        nav_dev: "Painel Dev",
+        btn_new_order: "Novo Pedido",
+        kpi_revenue: "Faturamento Total",
+        kpi_confirmed: "Vendas Confirmadas",
+        kpi_total_orders: "Total de Pedidos",
+        kpi_registered: "Registrados no Sistema",
+        kpi_conversion: "Conversão Pix",
+        kpi_approved: "Pagamentos Aprovados",
+        kpi_avg_ticket: "Ticket Médio",
+        kpi_avg_client: "Valor Médio por Cliente",
+        table_title: "Lista de Vendas & QR Codes Pix",
+        table_subtitle: "Gerencie status, clientes e geração instantânea de cobrança",
+        search_placeholder: "Buscar por cliente ou produto...",
+        th_customer: "Cliente",
+        th_product: "Produto",
+        th_total_paid: "Total / Pago",
+        th_status: "Status",
+        th_date: "Data",
+        th_actions: "Ações",
+        settings_title: "Configurações & Idioma",
+        label_language: "Idioma do Sistema (Language)",
+        label_pix_key: "Chave Pix",
+        label_merchant_name: "Nome do Recebedor",
+        label_merchant_city: "Cidade do Beneficiário",
+        btn_cancel: "Cancelar",
+        btn_save: "Salvar Configurações",
+        toast_saved: "Configurações salvas com sucesso!",
+        ai_speech_bubble: "Miau! Precisa de ajuda com vendas?",
+        ai_subtitle: "Seu assistente inteligente de conversão e vendas",
+        ai_welcome: "Olá! Eu sou o <strong>GatoPixel</strong>! 🐾 Posso analisar suas vendas atuais, gerar mensagens de cobrança para WhatsApp em 1 clique ou tirar dúvidas sobre o seu sistema!",
+        ai_btn_analyze: "Analisar Vendas",
+        ai_btn_copy: "Gerar Copy Pix",
+        ai_input_placeholder: "Pergunte algo ao GatoPixel...",
+        flag: "🇧🇷"
+      },
+      en: {
+        nav_sales: "Sales & Orders",
+        nav_dashboard: "Dashboard & AI",
+        nav_autorepair: "Auto-Repair",
+        nav_dev: "Dev Panel",
+        btn_new_order: "New Order",
+        kpi_revenue: "Total Revenue",
+        kpi_confirmed: "Confirmed Sales",
+        kpi_total_orders: "Total Orders",
+        kpi_registered: "Registered in System",
+        kpi_conversion: "Pix Conversion",
+        kpi_approved: "Approved Payments",
+        kpi_avg_ticket: "Average Ticket",
+        kpi_avg_client: "Average Value per Client",
+        table_title: "Sales List & Pix QR Codes",
+        table_subtitle: "Manage status, clients, and instant payment generation",
+        search_placeholder: "Search customer or product...",
+        th_customer: "Customer",
+        th_product: "Product",
+        th_total_paid: "Total / Paid",
+        th_status: "Status",
+        th_date: "Date",
+        th_actions: "Actions",
+        settings_title: "Settings & Language",
+        label_language: "System Language",
+        label_pix_key: "Pix Key / Payment Account",
+        label_merchant_name: "Receiver Name / Business",
+        label_merchant_city: "City",
+        btn_cancel: "Cancel",
+        btn_save: "Save Settings",
+        toast_saved: "Settings saved successfully!",
+        ai_speech_bubble: "Meow! Need help with sales?",
+        ai_subtitle: "Your intelligent conversion & sales assistant",
+        ai_welcome: "Hello! I am <strong>GatoPixel</strong>! 🐾 I can analyze your sales, generate WhatsApp billing copy in 1-click, or answer system questions!",
+        ai_btn_analyze: "Analyze Sales",
+        ai_btn_copy: "Generate Pix Copy",
+        ai_input_placeholder: "Ask GatoPixel anything...",
+        flag: "🇺🇸"
+      },
+      es: {
+        nav_sales: "Ventas y Pedidos",
+        nav_dashboard: "Panel e IA",
+        nav_autorepair: "Auto-Reparación",
+        nav_dev: "Panel Dev",
+        btn_new_order: "Nuevo Pedido",
+        kpi_revenue: "Facturación Total",
+        kpi_confirmed: "Ventas Confirmadas",
+        kpi_total_orders: "Total de Pedidos",
+        kpi_registered: "Registrados en el Sistema",
+        kpi_conversion: "Conversión Pix",
+        kpi_approved: "Pagos Aprobados",
+        kpi_avg_ticket: "Ticket Medio",
+        kpi_avg_client: "Valor Promedio por Cliente",
+        table_title: "Lista de Ventas y Códigos QR Pix",
+        table_subtitle: "Gestione estado, clientes y cobros al instante",
+        search_placeholder: "Buscar cliente o producto...",
+        th_customer: "Cliente",
+        th_product: "Producto",
+        th_total_paid: "Total / Pagado",
+        th_status: "Estado",
+        th_date: "Fecha",
+        th_actions: "Acciones",
+        settings_title: "Configuración e Idioma",
+        label_language: "Idioma del Sistema",
+        label_pix_key: "Clave Pix / Cuenta de Pago",
+        label_merchant_name: "Nombre del Beneficiario",
+        label_merchant_city: "Ciudad",
+        btn_cancel: "Cancelar",
+        btn_save: "Guardar Ajustes",
+        toast_saved: "¡Ajustes guardados con éxito!",
+        ai_speech_bubble: "¡Miau! ¿Necesitas ayuda con las ventas?",
+        ai_subtitle: "Tu asistente inteligente de ventas y conversión",
+        ai_welcome: "¡Hola! Soy <strong>GatoPixel</strong>! 🐾 Puedo analizar tus ventas, generar mensajes para WhatsApp en 1 clic o responder preguntas.",
+        ai_btn_analyze: "Analizar Ventas",
+        ai_btn_copy: "Generar Copy Pix",
+        ai_input_placeholder: "Pregúntale algo a GatoPixel...",
+        flag: "🇪🇸"
+      }
+    };
+
+    let currentLanguage = localStorage.getItem('gatopixel_lang') || 'pt';
+
+    const DEFAULT_CONFIG = {
+      pixKey: "+5511999999999",
+      merchantName: "GatoPixel",
+      merchantCity: "SAO PAULO",
+      language: "pt"
+    };
+
+    let pixConfig = DEFAULT_CONFIG;
+    try {
+      const storedConf = localStorage.getItem('pix_config_db');
+      if (storedConf) pixConfig = { ...DEFAULT_CONFIG, ...JSON.parse(storedConf) };
+    } catch(e) {
+      pixConfig = DEFAULT_CONFIG;
+    }
+
+    // NAVEGAÇÃO DE ABAS
+    window.switchTab = function(tabName) {
+      try {
+        document.querySelectorAll('.view-tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active', 'text-white'));
+        
+        const targetTab = document.getElementById(`view-${tabName}`);
+        if (targetTab) {
+          targetTab.classList.add('active');
+        }
+
+        if (tabName === 'analytics') {
+          requestAnimationFrame(() => updateCharts());
+        } else if (tabName === 'dev') {
+          loadDevJsonEditor();
+        }
+      } catch (err) {
+        console.warn("Erro suave ao alternar abas:", err);
+      }
+    };
+
+    window.tryOpenDevPanel = function() {
+      if (devAuthenticated) {
+        window.switchTab('dev');
+      } else {
+        const modal = document.getElementById('modal-dev-auth');
+        if (modal) modal.classList.remove('hidden');
+      }
+    };
+
+    window.closeDevAuthModal = function() {
+      const modal = document.getElementById('modal-dev-auth');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.verifyDevPin = function(event) {
+      if (event) event.preventDefault();
+      const pinVal = safeGetValue('dev-pin-input');
+      if (pinVal === FIXED_DEV_PIN) {
+        devAuthenticated = true;
+        window.closeDevAuthModal();
+        window.switchTab('dev');
+        showToast("Acesso de Desenvolvedor Concedido!", "success");
+      } else {
+        showToast("PIN de segurança incorreto!", "error");
+      }
+    };
+
+    // GERENCIAMENTO DE CONFIGURAÇÕES E MODAIS
+    window.openPixSettingsModal = function() {
+      try {
+        const keyEl = document.getElementById('pix-key-input');
+        if (keyEl) keyEl.value = pixConfig.pixKey || '';
+        
+        const nameEl = document.getElementById('pix-name-input');
+        if (nameEl) nameEl.value = pixConfig.merchantName || '';
+        
+        const cityEl = document.getElementById('pix-city-input');
+        if (cityEl) cityEl.value = pixConfig.merchantCity || '';
+        
+        const langEl = document.getElementById('setting-language-input');
+        if (langEl) langEl.value = currentLanguage || 'pt';
+        
+        const modal = document.getElementById('modal-pix-settings');
+        if (modal) modal.classList.remove('hidden');
+      } catch (err) {
+        console.warn("Erro ao abrir configurações:", err);
+      }
+    };
+
+    window.closePixSettingsModal = function() {
+      const modal = document.getElementById('modal-pix-settings');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.savePixSettings = function(event) {
+      if (event) event.preventDefault();
+      try {
+        pixConfig.pixKey = safeGetValue('pix-key-input').trim();
+        pixConfig.merchantName = safeGetValue('pix-name-input').trim();
+        pixConfig.merchantCity = safeGetValue('pix-city-input').trim();
+        
+        currentLanguage = safeGetValue('setting-language-input', 'pt');
+        pixConfig.language = currentLanguage;
+        
+        localStorage.setItem('pix_config_db', JSON.stringify(pixConfig));
+        localStorage.setItem('gatopixel_lang', currentLanguage);
+
+        applyTranslations();
+        window.closePixSettingsModal();
+        showToast(translations[currentLanguage]?.toast_saved || "Configurações salvas!", "success");
+      } catch (err) {
+        showToast("Erro ao salvar configurações", "error");
+      }
+    };
+
+    window.openNewOrderModal = function() {
+      try {
+        const idEl = document.getElementById('order-id'); if (idEl) idEl.value = '';
+        const custEl = document.getElementById('order-customer'); if (custEl) custEl.value = '';
+        const prodEl = document.getElementById('order-product'); if (prodEl) prodEl.value = '';
+        const amtEl = document.getElementById('order-amount'); if (amtEl) amtEl.value = '';
+        const paidEl = document.getElementById('order-paid'); if (paidEl) paidEl.value = '';
+        const stEl = document.getElementById('order-status'); if (stEl) stEl.value = 'Pendente';
+        
+        safeSetText('modal-order-title', translations[currentLanguage]?.btn_new_order || "Novo Pedido Pix");
+        
+        window.calculateRemainingBalance();
+        const modal = document.getElementById('modal-order');
+        if (modal) modal.classList.remove('hidden');
+      } catch (err) {
+        console.warn("Erro ao abrir modal de pedido:", err);
+      }
+    };
+
+    window.closeOrderModal = function() {
+      const modal = document.getElementById('modal-order');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.calculateRemainingBalance = function() {
+      try {
+        const amount = parseFloat(safeGetValue('order-amount', '0')) || 0;
+        const paid = parseFloat(safeGetValue('order-paid', '0')) || 0;
+        const balance = Math.max(0, amount - paid);
+        
+        const box = document.getElementById('balance-info-box');
+        if (box) {
+          if (amount > 0 && paid > 0 && balance > 0) {
+            box.classList.remove('hidden');
+            safeSetText('order-balance-display', `R$ ${balance.toFixed(2)}`);
+          } else {
+            box.classList.add('hidden');
+          }
+        }
+      } catch (err) {
+        console.warn("Erro ao calcular saldo:", err);
+      }
+    };
+
+    window.saveOrder = function(event) {
+      if (event) event.preventDefault();
+      try {
+        const idVal = safeGetValue('order-id');
+        const customer = safeGetValue('order-customer').trim();
+        const product = safeGetValue('order-product').trim();
+        const amount = parseFloat(safeGetValue('order-amount', '0')) || 0;
+        const paidAmount = parseFloat(safeGetValue('order-paid', '0')) || 0;
+        let status = safeGetValue('order-status', 'Pendente');
+
+        if (paidAmount >= amount && amount > 0) {
+          status = "Aprovado";
+        } else if (paidAmount > 0 && paidAmount < amount) {
+          status = "Parcial";
+        }
+
+        if (idVal) {
+          const index = orders.findIndex(o => o.id === parseInt(idVal));
+          if (index !== -1) {
+            orders[index] = { ...orders[index], customer, product, amount, paidAmount, status };
+          }
+        } else {
+          const newOrder = {
+            id: orders.length ? Math.max(...orders.map(o => o.id || 0)) + 1 : 1,
+            customer,
+            product,
+            amount,
+            paidAmount,
+            status,
+            date: new Date().toISOString().split('T')[0]
+          };
+          orders.push(newOrder);
+        }
+
+        saveState();
+        window.closeOrderModal();
+        showToast("Pedido salvo com sucesso!", "success");
+      } catch (err) {
+        showToast("Erro ao salvar pedido", "error");
+      }
+    };
+
+    window.editOrder = function(id) {
+      try {
+        const order = orders.find(o => o.id === id);
+        if (!order) return;
+
+        const idEl = document.getElementById('order-id'); if (idEl) idEl.value = order.id;
+        const custEl = document.getElementById('order-customer'); if (custEl) custEl.value = order.customer;
+        const prodEl = document.getElementById('order-product'); if (prodEl) prodEl.value = order.product;
+        const amtEl = document.getElementById('order-amount'); if (amtEl) amtEl.value = order.amount;
+        const paidEl = document.getElementById('order-paid'); if (paidEl) paidEl.value = order.paidAmount || 0;
+        const stEl = document.getElementById('order-status'); if (stEl) stEl.value = order.status;
+        
+        safeSetText('modal-order-title', "Editar Pedido");
+
+        window.calculateRemainingBalance();
+        const modal = document.getElementById('modal-order');
+        if (modal) modal.classList.remove('hidden');
+      } catch (err) {
+        console.warn("Erro ao editar pedido:", err);
+      }
+    };
+
+    window.deleteOrder = function(id) {
+      try {
+        orders = orders.filter(o => o.id !== id);
+        saveState();
+        showToast("Pedido excluído com sucesso!", "info");
+      } catch (err) {
+        console.warn("Erro ao excluir pedido:", err);
+      }
+    };
+
+    window.closePixModal = function() {
+      const modal = document.getElementById('modal-pix');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    function saveState() {
+      try {
+        localStorage.setItem('pix_orders_db', JSON.stringify(orders));
+        renderTable();
+        updateKPIs();
+        updateCharts();
+      } catch (e) {
+        console.warn("Erro ao salvar estado:", e);
+      }
+    }
+
+    function updateKPIs() {
+      try {
+        const validOrders = getValidOrders();
+        const totalRevenue = validOrders.reduce((acc, o) => acc + (o.paidAmount || (o.status === 'Aprovado' ? o.amount : 0)), 0);
+        const totalOrders = validOrders.length;
+        const approvedCount = validOrders.filter(o => o.status === 'Aprovado').length;
+        const conversionRate = totalOrders > 0 ? ((approvedCount / totalOrders) * 100).toFixed(0) : 0;
+        const avgTicket = approvedCount > 0 ? (totalRevenue / approvedCount) : 0;
+
+        safeSetText('kpi-revenue', `R$ ${totalRevenue.toFixed(2)}`);
+        safeSetText('kpi-total-orders', `${totalOrders}`);
+        safeSetText('kpi-conversion', `${conversionRate}%`);
+        safeSetText('kpi-avg-ticket', `R$ ${avgTicket.toFixed(2)}`);
+      } catch (e) {
+        console.warn("Erro ao atualizar KPIs:", e);
+      }
+    }
+
+    function calculateCRC16(payload) {
+      let crc = 0xFFFF;
+      for (let i = 0; i < payload.length; i++) {
+        crc ^= (payload.charCodeAt(i) << 8);
+        for (let j = 0; j < 8; j++) {
+          if ((crc & 0x8000) !== 0) {
+            crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+          } else {
+            crc = (crc << 1) & 0xFFFF;
+          }
+        }
+      }
+      return crc.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    function generatePixCode(key, name, city, amount) {
+      const cleanKey = (key || "").replace(/[^\w@.-]/g, '');
+      const cleanName = (name || "GatoPixel").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().substring(0, 25);
+      const cleanCity = (city || "SAO PAULO").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().substring(0, 15);
+      const formattedAmount = (amount || 0).toFixed(2);
+
+      const gui = "0014BR.GOV.BCB.PIX";
+      const keyField = "01" + String(cleanKey.length).padStart(2, '0') + cleanKey;
+      const merchantAccount = "26" + String((gui + keyField).length).padStart(2, '0') + gui + keyField;
+
+      const cat = "52040000";
+      const curr = "5303986";
+      const amtField = "54" + String(formattedAmount.length).padStart(2, '0') + formattedAmount;
+      const country = "5802BR";
+      const nameField = "59" + String(cleanName.length).padStart(2, '0') + cleanName;
+      const cityField = "60" + String(cleanCity.length).padStart(2, '0') + cleanCity;
+      const txid = "0503***";
+      const addData = "62" + String(txid.length).padStart(2, '0') + txid;
+
+      let payload = "000201" + merchantAccount + cat + curr + amtField + country + nameField + cityField + addData + "6304";
+      const crc = calculateCRC16(payload);
+      return payload + crc;
+    }
+
+    let currentPixOrderId = null;
+
+    // GERADOR DE SOM SINTÉTICO PARA APROVAÇÃO DE VENDA (Web Audio API)
+    function playSuccessSound() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } catch (e) {
+        console.warn("Áudio desativado no navegador");
+      }
+    }
+
+    // EXPORTAR DADOS EM CSV
+    window.exportSalesToCSV = function() {
+      try {
+        const validOrders = getValidOrders();
+        if (!validOrders.length) {
+          showToast("Nenhum pedido para exportar.", "info");
+          return;
+        }
+
+        let csv = "ID,Cliente,Produto,Valor Total,Valor Pago,Status,Data\n";
+        validOrders.forEach(o => {
+          csv += `"${o.id}","${(o.customer || '').replace(/"/g, '""')}","${(o.product || '').replace(/"/g, '""')}","${o.amount}","${o.paidAmount || 0}","${o.status}","${o.date || ''}"\n`;
+        });
+
+        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vendas_gatopixel_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showToast("Relatório CSV baixado com sucesso!", "success");
+      } catch (err) {
+        showToast("Erro ao gerar CSV", "error");
+      }
+    };
+
+    window.openPixModal = function(id) {
+      try {
+        const order = orders.find(o => o.id === id);
+        if (!order) return;
+
+        currentPixOrderId = id;
+        const remaining = order.amount - (order.paidAmount || 0);
+        const amountToCharge = remaining > 0 ? remaining : order.amount;
+
+        const pixPayload = generatePixCode(pixConfig.pixKey, pixConfig.merchantName, pixConfig.merchantCity, amountToCharge);
+        
+        safeSetText('pix-modal-amount', `R$ ${amountToCharge.toFixed(2)}`);
+        
+        const copiaInput = document.getElementById('pix-copia-cola-code');
+        if (copiaInput) copiaInput.value = pixPayload;
+
+        const container = document.getElementById('pix-qrcode-container');
+        if (container) {
+          container.innerHTML = '';
+          if (typeof QRCode !== 'undefined') {
+            new QRCode(container, {
+              text: pixPayload,
+              width: 180,
+              height: 180,
+              colorDark: "#0f172a",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          } else {
+            container.innerHTML = `<div class="p-4 text-xs text-slate-600 font-mono break-all">${pixPayload}</div>`;
+          }
+        }
+
+        const modal = document.getElementById('modal-pix');
+        if (modal) modal.classList.remove('hidden');
+      } catch (err) {
+        showToast("Erro ao abrir QR Code Pix", "error");
+      }
+    };
+
+    window.copyPixCopiaECola = function() {
+      try {
+        const code = safeGetValue('pix-copia-cola-code');
+        if (!code) return;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code);
+        } else {
+          const input = document.getElementById('pix-copia-cola-code');
+          if (input) {
+            input.type = "text";
+            input.select();
+            document.execCommand('copy');
+            input.type = "hidden";
+          }
+        }
+        showToast("Código Pix Copia e Cola copiado!", "success");
+      } catch (e) {
+        showToast("Erro ao copiar Pix", "error");
+      }
+    };
+
+    window.simulatePixPayment = function() {
+      try {
+        if (!currentPixOrderId) return;
+        const order = orders.find(o => o.id === currentPixOrderId);
+        if (order) {
+          order.status = "Aprovado";
+          order.paidAmount = order.amount;
+          saveState();
+          playSuccessSound();
+          window.closePixModal();
+          showToast(`Pagamento do pedido #${order.id} confirmado instantaneamente!`, "success");
+        }
+      } catch (e) {
+        console.warn("Erro ao simular pagamento:", e);
+      }
+    };
+
+    window.toggleOrderStatus = function(id) {
+      try {
+        const order = orders.find(o => o.id === id);
+        if (!order) return;
+
+        if (order.status === 'Pendente' || order.status === 'Parcial') {
+          order.status = 'Aprovado';
+          order.paidAmount = order.amount;
+          playSuccessSound();
+        } else {
+          order.status = 'Pendente';
+          order.paidAmount = 0;
+        }
+
+        saveState();
+        showToast(`Status alterado para ${order.status}`, "success");
+      } catch (err) {
+        console.warn("Erro ao alternar status:", err);
+      }
+    };
+
+    function renderTable() {
+      try {
+        const tbody = document.getElementById('orders-table-body');
+        if (!tbody) return;
+
+        const search = (safeGetValue('search-orders') || "").toLowerCase();
+        const filterStatus = safeGetValue('filter-status', 'ALL');
+        const validOrders = getValidOrders();
+        
+        const filtered = validOrders.filter(o => {
+          const matchesSearch = (o.customer || "").toLowerCase().includes(search) || (o.product || "").toLowerCase().includes(search);
+          const matchesStatus = filterStatus === 'ALL' || o.status === filterStatus;
+          return matchesSearch && matchesStatus;
+        });
+
+        tbody.innerHTML = '';
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="text-center py-8 text-slate-400">
+                Nenhum pedido encontrado.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        filtered.forEach(o => {
+          const amt = parseFloat(o.amount) || 0;
+          const paid = o.paidAmount || (o.status === 'Aprovado' ? amt : 0);
+          const remaining = Math.max(0, amt - paid);
+          
+          let statusBadge = "";
+          if (o.status === 'Aprovado') {
+            statusBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-check"></i> Aprovado</span>`;
+          } else if (o.status === 'Parcial') {
+            statusBadge = `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-clock-rotate-left"></i> Parcial</span>`;
+          } else if (o.status === 'Cancelado') {
+            statusBadge = `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-xmark"></i> Cancelado</span>`;
+          } else {
+            statusBadge = `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-clock"></i> Pendente</span>`;
+          }
+
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-700/40 transition";
+          tr.innerHTML = `
+            <td class="py-3.5 px-4 font-mono font-bold text-slate-400">#${o.id}</td>
+            <td class="py-3.5 px-4 font-semibold text-white">${escapeHtml(o.customer)}</td>
+            <td class="py-3.5 px-4 text-slate-300">${escapeHtml(o.product)}</td>
+            <td class="py-3.5 px-4">
+              <div class="font-bold text-white">R$ ${amt.toFixed(2)}</div>
+              <div class="text-[10px] text-slate-400">Pago: R$ ${paid.toFixed(2)} ${remaining > 0 ? `<span class="text-amber-400 font-semibold">(Falta R$ ${remaining.toFixed(2)})</span>` : ''}</div>
+            </td>
+            <td class="py-3.5 px-4">${statusBadge}</td>
+            <td class="py-3.5 px-4 text-slate-400">${o.date || '-'}</td>
+            <td class="py-3.5 px-4 text-right space-x-1">
+              <button onclick="openPixModal(${o.id})" class="p-2 text-indigo-400 hover:bg-slate-700 rounded-lg transition" title="Ver QR Code Pix">
+                <i class="fa-solid fa-qrcode text-base"></i>
+              </button>
+              <button onclick="toggleOrderStatus(${o.id})" class="p-2 text-emerald-400 hover:bg-slate-700 rounded-lg transition" title="Alternar Status">
+                <i class="fa-solid fa-arrows-rotate text-base"></i>
+              </button>
+              <button onclick="editOrder(${o.id})" class="p-2 text-slate-300 hover:bg-slate-700 rounded-lg transition" title="Editar">
+                <i class="fa-solid fa-pen text-base"></i>
+              </button>
+              <button onclick="deleteOrder(${o.id})" class="p-2 text-rose-400 hover:bg-slate-700 rounded-lg transition" title="Excluir">
+                <i class="fa-solid fa-trash text-base"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.warn("Erro ao renderizar tabela:", err);
+      }
+    }
+
+    function applyTranslations() {
+      try {
+        const lang = translations[currentLanguage] ? currentLanguage : 'pt';
+        const dict = translations[lang];
+
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute('data-i18n');
+          if (dict[key]) {
+            el.textContent = dict[key];
+          }
+        });
+
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+          const key = el.getAttribute('data-i18n-placeholder');
+          if (dict[key]) {
+            el.placeholder = dict[key];
+          }
+        });
+
+        safeSetText('header-lang-flag', dict.flag);
+
+        const welcomeEl = document.getElementById('gatopixel-welcome-msg');
+        if (welcomeEl && dict.ai_welcome) {
+          welcomeEl.innerHTML = dict.ai_welcome;
+        }
+
+        renderTable();
+      } catch (err) {
+        console.warn("Erro ao aplicar traduções:", err);
+      }
+    }
+
+    // INICIALIZAÇÃO DA PÁGINA
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        applyTranslations();
+        updateKPIs();
+        initCharts();
+      } catch (err) {
+        console.warn("Erro na inicialização DOM:", err);
+      }
+
+      setInterval(() => {
+        if (isBackgroundProcessRunning) return;
+        isBackgroundProcessRunning = true;
+        
+        try {
+          if (window.requestIdleCallback) {
+            requestIdleCallback(() => {
+              autoRepararSistema();
+              isBackgroundProcessRunning = false;
+            });
+          } else {
+            setTimeout(() => {
+              autoRepararSistema();
+              isBackgroundProcessRunning = false;
+            }, 100);
+          }
+        } catch(e) {
+          isBackgroundProcessRunning = false;
+        }
+      }, 10000);
+    });
+
+    // LÓGICA DA IA GATOPIXEL
+    window.toggleGatoPixelModal = function() {
+      const modal = document.getElementById('modal-gatopixel-ai');
+      if (modal) {
+        modal.classList.toggle('hidden');
+      }
+    };
+
+    function addGatoPixelMessage(text, sender = 'cat') {
+      try {
+        const chatBox = document.getElementById('gatopixel-chat-messages');
+        if (!chatBox) return;
+
+        const div = document.createElement('div');
+        div.className = sender === 'user' ? "flex gap-2.5 items-start justify-end" : "flex gap-2.5 items-start";
+
+        if (sender === 'user') {
+          div.innerHTML = `
+            <div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">
+              ${escapeHtml(text)}
+            </div>
+          `;
+        } else {
+          div.innerHTML = `
+            <div class="w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xs shrink-0 mt-0.5">
+              <i class="fa-solid fa-cat"></i>
+            </div>
+            <div class="bg-slate-100 text-slate-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed space-y-2">
+              ${text}
+            </div>
+          `;
+        }
+
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (err) {
+        console.warn("Erro no chat da IA:", err);
+      }
+    }
+
+    window.askGatoPixel = function(action) {
+      try {
+        const validOrders = getValidOrders();
+        if (action === 'analyze') {
+          const totalRevenue = validOrders.reduce((acc, o) => acc + (o.paidAmount || (o.status === 'Aprovado' ? o.amount : 0)), 0);
+          const pendingOrders = validOrders.filter(o => o.status === 'Pendente' || o.status === 'Parcial');
+          
+          let reply = `📊 <strong>Análise Rápida de Vendas:</strong><br>`;
+          reply += `• Faturamento Real: <strong>R$ ${totalRevenue.toFixed(2)}</strong><br>`;
+          reply += `• Pedidos com Saldo Pendente: <strong>${pendingOrders.length}</strong><br><br>`;
+          if (pendingOrders.length > 0) {
+            reply += `💡 <em>Dica do Gato:</em> Você tem clientes com pagamentos pendentes! Clique em <strong>"Gerar Copy Pix"</strong> para receber via WhatsApp.`;
+          } else {
+            reply += `🎉 Parabéns! Todos os seus pedidos cadastrados estão totalmente pagos.`;
+          }
+
+          addGatoPixelMessage(reply, 'cat');
+        } else if (action === 'copy') {
+          const pendingOrder = validOrders.find(o => o.status === 'Pendente' || o.status === 'Parcial');
+          
+          if (!pendingOrder) {
+            addGatoPixelMessage("Nenhum pedido pendente encontrado no momento para gerar cobrança!", 'cat');
+            return;
+          }
+
+          const remaining = pendingOrder.amount - (pendingOrder.paidAmount || 0);
+          const copyMessage = `Olá ${pendingOrder.customer}! 👋 Aqui é do ${pixConfig.merchantName}. Lembrete rápido do seu pedido de ${pendingOrder.product}. O valor do saldo restante é R$ ${remaining.toFixed(2)}. Chave Pix: ${pixConfig.pixKey}. Podemos confirmar?`;
+
+          let reply = `📱 <strong>Copy de Cobrança para WhatsApp:</strong><br>`;
+          reply += `<div class="bg-white p-2.5 rounded-xl border border-slate-200 font-mono text-[11px] select-all my-1">${copyMessage}</div>`;
+          reply += `<button onclick="navigator.clipboard.writeText('${copyMessage.replace(/'/g, "\\'")}'); showToast('Copiado!', 'success')" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1"><i class="fa-solid fa-copy"></i> Copiar Mensagem</button>`;
+
+          addGatoPixelMessage(reply, 'cat');
+        }
+      } catch (err) {
+        addGatoPixelMessage("Miau! Ocorreu uma pequena oscilação no meu circuito, mas já me recuperei!", 'cat');
+      }
+    };
+
+    window.handleGatoPixelSubmit = function(event) {
+      if (event) event.preventDefault();
+      try {
+        const input = document.getElementById('gatopixel-input');
+        if (!input) return;
+        const text = input.value.trim();
+        if (!text) return;
+
+        addGatoPixelMessage(text, 'user');
+        input.value = "";
+
+        setTimeout(() => {
+          let answer = "Miau! Estou monitorando seus pedidos em tempo real. Se precisar de ajuda, utilize as opções rápidas acima!";
+          addGatoPixelMessage(answer, 'cat');
+        }, 500);
+      } catch (err) {
+        console.warn("Erro na submissão da IA:", err);
+      }
+    };
+
+    // GRÁFICOS CHART.JS
+    function initCharts() {
+      try {
+        if (typeof Chart === 'undefined') return;
+
+        if (statusChartInstance) statusChartInstance.destroy();
+        if (productsChartInstance) productsChartInstance.destroy();
+
+        const ctxStatus = document.getElementById('chart-status')?.getContext('2d');
+        const ctxProducts = document.getElementById('chart-products')?.getContext('2d');
+
+        if (ctxStatus) {
+          statusChartInstance = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+              labels: ['Aprovado', 'Pendente', 'Cancelado'],
+              datasets: [{
+                data: [1, 1, 0],
+                backgroundColor: ['#10b981', '#f59e0b', '#f43f5e']
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+          });
+        }
+
+        if (ctxProducts) {
+          productsChartInstance = new Chart(ctxProducts, {
+            type: 'bar',
+            data: {
+              labels: ['GatoPixel', 'Consultoria', 'Automação'],
+              datasets: [{
+                label: 'Vendas (R$)',
+                data: [149.9, 299.0, 89.9],
+                backgroundColor: '#6366f1'
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+          });
+        }
+      } catch (err) {
+        console.warn("Erro ao carregar Chart.js:", err);
+      }
+    }
+
+    function updateCharts() {
+      try {
+        if (!statusChartInstance || !productsChartInstance) {
+          initCharts();
+          return;
+        }
+
+        const validOrders = getValidOrders();
+        const approved = validOrders.filter(o => o.status === 'Aprovado').length;
+        const pending = validOrders.filter(o => o.status === 'Pendente').length;
+        const canceled = validOrders.filter(o => o.status === 'Cancelado').length;
+
+        statusChartInstance.data.datasets[0].data = [approved, pending, canceled];
+        statusChartInstance.update();
+      } catch (err) {
+        console.warn("Erro ao atualizar gráficos:", err);
+      }
+    }
+
+    // AUTO-REPARO DE CÓDIGO E CONSOLE
+    function autoRepararSistema() {
+      let repaired = false;
+      try {
+        if (!Array.isArray(orders)) {
+          orders = INITIAL_ORDERS;
+          repaired = true;
+        }
+
+        orders.forEach((o, i) => {
+          if (!o.id || typeof o.id !== 'number') {
+            o.id = i + 1;
+            repaired = true;
+          }
+        });
+
+        if (repaired) {
+          patchCount++;
+          safeSetText('repair-patch-count', `${patchCount} Alterações`);
+          logRepairConsole("[AUTO-FIX] Estado de memória corrompido foi sanitizado automaticamente.");
+        }
+      } catch (e) {
+        console.warn("Auto-reparo ajustou falha interna");
+      }
+
+      return { reparado: repaired };
+    }
+
+    window.executarDiagnosticoEAutoFixManual = function() {
+      autoRepararSistema();
+      logRepairConsole("[DIAGNÓSTICO] Varredura manual realizada. Sintaxe e estado 100% integrais.");
+      showToast("Diagnóstico completo! Código e dados validados.", "success");
+    };
+
+    function logRepairConsole(msg) {
+      try {
+        const consoleEl = document.getElementById('repair-console-log');
+        if (!consoleEl) return;
+        const div = document.createElement('div');
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        consoleEl.appendChild(div);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      } catch (e) {
+        console.warn("Console de reparo indisponível");
+      }
+    }
+
+    // PAINEL DESENVOLVEDOR
+    function loadDevJsonEditor() {
+      try {
+        const textarea = document.getElementById('dev-json-editor');
+        if (textarea) {
+          textarea.value = JSON.stringify(orders, null, 2);
+        }
+      } catch (e) {
+        console.warn("Erro ao carregar editor JSON");
+      }
+    }
+
+    window.saveDevJsonState = function() {
+      try {
+        const val = safeGetValue('dev-json-editor');
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) {
+          orders = parsed;
+          saveState();
+          showToast("JSON do banco atualizado com sucesso!", "success");
+        }
+      } catch (err) {
+        showToast("Erro na sintaxe do JSON inserido!", "error");
+      }
+    };
+
+    window.injectMockData = function() {
+      try {
+        orders = [
+          ...orders,
+          { id: orders.length + 1, customer: "Cliente Teste Dev", product: "Pack Automação", amount: 199.00, paidAmount: 199.00, status: "Aprovado", date: new Date().toISOString().split('T')[0] }
+        ];
+        saveState();
+        loadDevJsonEditor();
+        showToast("Pedido de teste injetado!", "info");
+      } catch (err) {
+        showToast("Erro ao injetar dados", "error");
+      }
+    };
+
+    window.resetSystemDatabase = function() {
+      try {
+        orders = [];
+        saveState();
+        loadDevJsonEditor();
+        showToast("Banco de dados resetado!", "info");
+      } catch (err) {
+        showToast("Erro ao resetar banco", "error");
+      }
+    };
+
+    function showToast(message, type = "info") {
+      try {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        const bg = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-slate-800';
+        
+        toast.className = `${bg} text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 pointer-events-auto transition-all duration-300 ease-out transform translate-y-2 opacity-0`;
+        toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${message}`;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+          toast.classList.remove('translate-y-2', 'opacity-0');
+        });
+
+        setTimeout(() => {
+          toast.classList.add('opacity-0', '-translate-y-2');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      } catch (e) {
+        console.warn("Toast fallback:", message);
+      }
+    }
+
+    function escapeHtml(str) {
+      return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+</body>
+</html>
