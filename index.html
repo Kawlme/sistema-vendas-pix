@@ -123,10 +123,10 @@
   <!-- CONTEÚDO PRINCIPAL (LAYOUT) -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-    <!-- KPI CARDS (RESUMO DAS VENDAS - AGORA COM 5 CARDS EM GRID ADAPTÁVEL) -->
+    <!-- KPI CARDS (RESUMO DAS VENDAS) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       
-      <!-- CARD 1: FATURAMENTO -->
+      <!-- CARD 1: FATURAMENTO RECEBIDO -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div class="space-y-1">
           <p class="text-xs font-medium text-slate-400" data-i18n="kpi_revenue">Faturamento Recebido</p>
@@ -140,7 +140,7 @@
         </div>
       </div>
 
-      <!-- CARD NOVO: VALOR A RECEBER (FALTA RECEBER) -->
+      <!-- CARD 2: FALTA RECEBER -->
       <div class="bg-slate-800/60 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div class="space-y-1">
           <p class="text-xs font-medium text-slate-400">Falta Receber</p>
@@ -497,7 +497,7 @@
   <!-- TOAST CONTAINER PARA NOTIFICAÇÕES -->
   <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <!-- SCRIPT PRINCIPAL JAVASCRIPT -->
+  <!-- SCRIPT PRINCIPAL JAVASCRIPT COMPLETO E BLINDADO -->
   <script>
     // 🛡️ BLINDAGEM GLOBAL CONTRA ERROS INESPERADOS
     window.onerror = function(msg, url, line, col, error) {
