@@ -123,16 +123,16 @@
   <!-- CONTEÚDO PRINCIPAL (LAYOUT) -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-    <!-- KPI CARDS (RESUMO DAS VENDAS) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- KPI CARDS (RESUMO DAS VENDAS - AGORA COM 5 CARDS EM GRID ADAPTÁVEL) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       
       <!-- CARD 1: FATURAMENTO -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div class="space-y-1">
-          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_revenue">Faturamento Total</p>
-          <h3 id="kpi-revenue" class="text-xl font-extrabold text-white">R$ 0,00</h3>
+          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_revenue">Faturamento Recebido</p>
+          <h3 id="kpi-revenue" class="text-xl font-extrabold text-emerald-400">R$ 0,00</h3>
           <p class="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
-            <i class="fa-solid fa-circle-check"></i> <span data-i18n="kpi_confirmed">Vendas Confirmadas</span>
+            <i class="fa-solid fa-circle-check"></i> <span data-i18n="kpi_confirmed">Pago em Conta</span>
           </p>
         </div>
         <div class="w-11 h-11 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-lg border border-emerald-500/20">
@@ -140,7 +140,21 @@
         </div>
       </div>
 
-      <!-- CARD 2: TOTAL DE PEDIDOS -->
+      <!-- CARD NOVO: VALOR A RECEBER (FALTA RECEBER) -->
+      <div class="bg-slate-800/60 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400">Falta Receber</p>
+          <h3 id="kpi-pending-amount" class="text-xl font-extrabold text-amber-400">R$ 0,00</h3>
+          <p class="text-[10px] text-amber-400 font-medium flex items-center gap-1">
+            <i class="fa-solid fa-clock"></i> <span>Saldo Pendente</span>
+          </p>
+        </div>
+        <div class="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center text-lg border border-amber-500/20">
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+        </div>
+      </div>
+
+      <!-- CARD 3: TOTAL DE PEDIDOS -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div class="space-y-1">
           <p class="text-xs font-medium text-slate-400" data-i18n="kpi_total_orders">Total de Pedidos</p>
@@ -152,19 +166,19 @@
         </div>
       </div>
 
-      <!-- CARD 3: TAXA DE CONVERSÃO -->
+      <!-- CARD 4: TAXA DE CONVERSÃO -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div class="space-y-1">
           <p class="text-xs font-medium text-slate-400" data-i18n="kpi_conversion">Conversão Pix</p>
           <h3 id="kpi-conversion" class="text-xl font-extrabold text-white">0%</h3>
-          <p class="text-[10px] text-amber-400" data-i18n="kpi_approved">Pagamentos Aprovados</p>
+          <p class="text-[10px] text-indigo-400" data-i18n="kpi_approved">Pagamentos Aprovados</p>
         </div>
-        <div class="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center text-lg border border-amber-500/20">
+        <div class="w-11 h-11 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center text-lg border border-indigo-500/20">
           <i class="fa-solid fa-bolt"></i>
         </div>
       </div>
 
-      <!-- CARD 4: TICKET MÉDIO -->
+      <!-- CARD 5: TICKET MÉDIO -->
       <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div class="space-y-1">
           <p class="text-xs font-medium text-slate-400" data-i18n="kpi_avg_ticket">Ticket Médio</p>
@@ -492,7 +506,7 @@
         autoRepararSistema();
       }
       try { showToast("Sistema auto-recuperado de instabilidade temporária.", "info"); } catch(e) {}
-      return true; // Previne tela branca e erros no console do navegador
+      return true;
     };
 
     window.addEventListener('unhandledrejection', function(event) {
@@ -561,8 +575,8 @@
         nav_autorepair: "Auto-Reparo",
         nav_dev: "Painel Dev",
         btn_new_order: "Novo Pedido",
-        kpi_revenue: "Faturamento Total",
-        kpi_confirmed: "Vendas Confirmadas",
+        kpi_revenue: "Faturamento Recebido",
+        kpi_confirmed: "Pago em Conta",
         kpi_total_orders: "Total de Pedidos",
         kpi_registered: "Registrados no Sistema",
         kpi_conversion: "Conversão Pix",
@@ -600,8 +614,8 @@
         nav_autorepair: "Auto-Repair",
         nav_dev: "Dev Panel",
         btn_new_order: "New Order",
-        kpi_revenue: "Total Revenue",
-        kpi_confirmed: "Confirmed Sales",
+        kpi_revenue: "Received Revenue",
+        kpi_confirmed: "Paid in Account",
         kpi_total_orders: "Total Orders",
         kpi_registered: "Registered in System",
         kpi_conversion: "Pix Conversion",
@@ -639,8 +653,8 @@
         nav_autorepair: "Auto-Reparación",
         nav_dev: "Panel Dev",
         btn_new_order: "Nuevo Pedido",
-        kpi_revenue: "Facturación Total",
-        kpi_confirmed: "Ventas Confirmadas",
+        kpi_revenue: "Facturación Recibida",
+        kpi_confirmed: "Pagado en Cuenta",
         kpi_total_orders: "Total de Pedidos",
         kpi_registered: "Registrados en el Sistema",
         kpi_conversion: "Conversión Pix",
@@ -708,7 +722,7 @@
           loadDevJsonEditor();
         }
       } catch (err) {
-        console.warn("Erro suave ao alternar abas:", err);
+        console.warn("Erro ao alternar abas:", err);
       }
     };
 
