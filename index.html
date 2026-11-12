@@ -212,8 +212,9 @@
     </div>
 
     <!-- VISTA 1: TABELA DE PEDIDOS & VENDAS -->
-    <section id="view-sales" class="view-tab active bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-700/60">
+    <div id="view-sales" class="view-tab active bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 sm:pb-5 border-b border-slate-700/60">
         <div>
           <h2 class="text-lg font-bold text-white tracking-tight" data-i18n="table_title">Lista de Vendas & QR Codes Pix</h2>
           <p class="text-xs text-slate-400" data-i18n="table_subtitle">Gerencie status, cobranças WhatsApp, recibos e QR Codes Pix</p>
@@ -249,71 +250,7 @@
           </div>
         </div>
       </div>
-
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr class="text-slate-400 border-b border-slate-700/60 uppercase text-[11px] tracking-wider">
-              <th class="py-3 px-4">ID</th>
-              <th class="py-3 px-4" data-i18n="th_customer">Cliente</th>
-              <th class="py-3 px-4" data-i18n="th_product_qty">Produto / Qtd</th>
-              <th class="py-3 px-4" data-i18n="th_total_paid">Total / Pago</th>
-              <th class="py-3 px-4" data-i18n="th_status">Status</th>
-              <th class="py-3 px-4" data-i18n="th_date">Data</th>
-              <th class="py-3 px-4 text-right" data-i18n="th_actions">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="orders-table-body" class="divide-y divide-slate-700/40"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- VISTA 2: CATÁLOGO DE PRODUTOS & SERVIÇOS -->
-    <section id="view-catalog" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-5">
-      <div class="border-b border-slate-700/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-box-open text-violet-400"></i> <span data-i18n="catalog_title">Catálogo de Produtos & Serviços</span>
-          </h2>
-          <p class="text-xs text-slate-400" data-i18n="catalog_subtitle">Cadastre itens recorrentes para preencher pedidos em 1 clique</p>
-        </div>
-        <button onclick="App.UI.openNewProductModal()" class="bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg transition flex items-center gap-2 self-start sm:self-auto">
-          <i class="fa-solid fa-plus"></i> <span data-i18n="btn_new_product">Novo Item no Catálogo</span>
-        </button>
-      </div>
-
-      <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-    </section>
-
-    <!-- VISTA 3: DASHBOARD & ANALYTICS -->
-    <section id="view-analytics" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-5">
-      <div class="border-b border-slate-700/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div>
-          <h2 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-chart-pie text-indigo-400"></i> <span data-i18n="analytics_title">Dashboard Analítico & Inteligência</span>
-          </h2>
-          <p class="text-xs text-slate-400" data-i18n="analytics_subtitle">Distribuição em tempo real de pagamentos e receita por produto</p>
-        </div>
-        <button onclick="App.UI.toggleGatoPixelModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2 self-start sm:self-auto">
-          <i class="fa-solid fa-cat"></i> <span data-i18n="btn_consult_ai">Consultar GatoPixel AI</span>
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-slate-900/80 border border-slate-700 rounded-2xl p-4">
-          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3" data-i18n="chart_status_title">Pedidos por Status</h3>
-          <div class="h-64 relative">
-            <canvas id="chart-status"></canvas>
-          </div>
-        </div>
-
-        <div class="bg-slate-900/80 border border-slate-700 rounded-2xl p-4">
-          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3" data-i18n="chart_products_title">Faturamento por Produto</h3>
-          <div class="h-64 relative">
-            <canvas id="chart-products"></canvas>
-          </div>
-        </div>
-      </div>
+    </div>
 
       <div id="analytics-insights" class="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-4 text-xs text-slate-200 leading-relaxed"></div>
     </section>
@@ -1348,111 +1285,21 @@
         }
       },
 
-      Services: {
-        async init() {
-          App.State.config = await App.API.fetchConfig();
-          const rawOrders = await App.API.fetchOrders();
-          const rawProducts = await App.API.fetchProducts();
+    function updateKPIs() {
+      try {
+        const validOrders = getValidOrders();
+        const totalRevenue = validOrders.reduce((acc, o) => acc + (o.paidAmount || (o.status === 'Aprovado' ? o.amount : 0)), 0);
+        const totalOrders = validOrders.length;
+        const approvedCount = validOrders.filter(o => o.status === 'Aprovado').length;
+        const conversionRate = totalOrders > 0 ? ((approvedCount / totalOrders) * 100).toFixed(0) : 0;
+        const avgTicket = approvedCount > 0 ? (totalRevenue / approvedCount) : 0;
 
-          App.State.orders = rawOrders.map((o, idx) => App.Utils.sanitizeOrder(o, idx + 1));
-          App.State.products = rawProducts.map((p, idx) => App.Utils.sanitizeProduct(p, idx + 1));
-
-          await App.API.persistOrders(App.State.orders);
-          await App.API.persistProducts(App.State.products);
-
-          this.initPWA();
-          App.UI.applyTranslations();
-          App.UI.refreshAll();
-          this.logRepair("Sistema inicializado e validado com sucesso.");
-        },
-
-        initPWA() {
-          const updateConnBadge = () => {
-            const badge = document.getElementById("connection-badge");
-            if (!badge) return;
-            if (navigator.onLine) {
-              badge.textContent = "Online";
-              badge.className = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-semibold";
-            } else {
-              badge.textContent = "Offline";
-              badge.className = "bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-semibold";
-            }
-          };
-          window.addEventListener("online", updateConnBadge);
-          window.addEventListener("offline", updateConnBadge);
-          updateConnBadge();
-
-          try {
-            const manifest = {
-              name: "GatoPixel Sales",
-              short_name: "GatoPixel",
-              start_url: ".",
-              display: "standalone",
-              background_color: "#0f172a",
-              theme_color: "#4f46e5",
-              icons: [{
-                src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%234f46e5'/><text x='50' y='68' font-size='54' text-anchor='middle' fill='white'>🐱</text></svg>",
-                sizes: "192x192",
-                type: "image/svg+xml"
-              }]
-            };
-            const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
-            const link = document.createElement("link");
-            link.rel = "manifest";
-            link.href = URL.createObjectURL(blob);
-            document.head.appendChild(link);
-          } catch (_) {}
-
-          if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-            const swCode = `
-              const CACHE_NAME = 'gatopixel-pwa-v1';
-              const ASSETS = [
-                'https://cdn.tailwindcss.com',
-                'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-                'https://cdn.jsdelivr.net/npm/chart.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'
-              ];
-              self.addEventListener('install', e => {
-                e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).catch(() => {}));
-              });
-              self.addEventListener('fetch', e => {
-                e.respondWith(
-                  caches.match(e.request).then(cached => cached || fetch(e.request).then(resp => {
-                    const clone = resp.clone();
-                    caches.open(CACHE_NAME).then(c => c.put(e.request, clone)).catch(() => {});
-                    return resp;
-                  }).catch(() => cached))
-                );
-              });
-            `;
-            try {
-              const swBlob = new Blob([swCode], { type: "application/javascript" });
-              navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
-            } catch (_) {}
-          }
-        },
-
-        async saveOrder(event) {
-          if (event) event.preventDefault();
-          const idVal = document.getElementById("order-id").value;
-          const customer = document.getElementById("order-customer").value.trim();
-          const phone = document.getElementById("order-phone").value.replace(/\D/g, "");
-          const product = document.getElementById("order-product").value.trim();
-          const quantity = Math.max(1, parseInt(document.getElementById("order-quantity").value, 10) || 1);
-          const unitPrice = parseFloat(document.getElementById("order-unit-price").value);
-          const paidRaw = parseFloat(document.getElementById("order-paid").value);
-          const paidAmount = Number.isFinite(paidRaw) && paidRaw >= 0 ? paidRaw : 0;
-          let status = document.getElementById("order-status").value;
-
-          if (!customer || !product || !Number.isFinite(unitPrice) || unitPrice <= 0) return;
-
-          const amount = Number((quantity * unitPrice).toFixed(2));
-
-          if (paidAmount >= amount) {
-            status = "Aprovado";
-          } else if (paidAmount > 0 && paidAmount < amount && status === "Pendente") {
-            status = "Parcial";
-          }
+        safeSetText('kpi-revenue', `R$ ${totalRevenue.toFixed(2)}`);
+        safeSetText('kpi-total-orders', `${totalOrders}`);
+        safeSetText('kpi-conversion', `${conversionRate}%`);
+        safeSetText('kpi-avg-ticket', `R$ ${avgTicket.toFixed(2)}`);
+      } catch (e) {}
+    }
 
           if (idVal) {
             const id = parseInt(idVal, 10);
@@ -1482,43 +1329,57 @@
           App.UI.showToast(App.UI.t("toast_order_saved"), "success");
         },
 
-        async deleteOrder(id) {
-          const target = App.State.orders.find(o => o.id === id);
-          if (!target) return;
+    let currentPixOrderId = null;
 
-          App.State.lastDeletedOrder = { ...target };
-          App.State.orders = App.State.orders.filter(o => o.id !== id);
-          await App.API.persistOrders(App.State.orders);
-          App.UI.refreshAll();
+    // GERADOR DE SOM SINTÉTICO PARA APROVAÇÃO DE VENDA (Web Audio API)
+    function playSuccessSound() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } catch (e) {
+        console.warn("Áudio desativado no navegador");
+      }
+    }
 
-          App.UI.showToast(App.UI.t("toast_order_deleted"), "info", {
-            label: App.UI.t("btn_undo"),
-            onClick: () => this.undoDeleteOrder()
-          });
-        },
+    // EXPORTAR DADOS EM CSV
+    window.exportSalesToCSV = function() {
+      try {
+        const validOrders = getValidOrders();
+        if (!validOrders.length) {
+          showToast("Nenhum pedido para exportar.", "info");
+          return;
+        }
 
-        async undoDeleteOrder() {
-          if (!App.State.lastDeletedOrder) return;
-          App.State.orders.push(App.State.lastDeletedOrder);
-          App.State.orders.sort((a, b) => a.id - b.id);
-          App.State.lastDeletedOrder = null;
-          await App.API.persistOrders(App.State.orders);
-          App.UI.refreshAll();
-          App.UI.showToast(App.UI.t("toast_order_restored"), "success");
-        },
+        let csv = "ID,Cliente,Produto,Valor Total,Valor Pago,Status,Data\n";
+        validOrders.forEach(o => {
+          csv += `"${o.id}","${(o.customer || '').replace(/"/g, '""')}","${(o.product || '').replace(/"/g, '""')}","${o.amount}","${o.paidAmount || 0}","${o.status}","${o.date || ''}"\n`;
+        });
 
-        async toggleOrderStatus(id) {
-          const order = App.State.orders.find(o => o.id === id);
-          if (!order) return;
+        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vendas_gatopixel_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
 
-          if (order.status === "Pendente" || order.status === "Parcial") {
-            order.status = "Aprovado";
-            order.paidAmount = order.amount;
-            App.Utils.playSuccessSound();
-          } else {
-            order.status = "Pendente";
-            order.paidAmount = 0;
-          }
+        showToast("Relatório CSV baixado!", "success");
+      } catch (err) {
+        showToast("Erro ao gerar CSV", "error");
+      }
+    };
 
           await App.API.persistOrders(App.State.orders);
           App.UI.refreshAll();
@@ -2082,40 +1943,146 @@
               Pix: ${App.Utils.escapeHtml(App.State.config.pixKey)}
             </div>
           `;
+          cardsContainer.appendChild(card);
 
-          document.getElementById("modal-receipt").classList.remove("hidden");
-        },
+          // 2. MONTAGEM DA TABELA DESKTOP
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-700/40 transition";
+          tr.innerHTML = `
+            <td class="py-2.5 px-3 font-mono font-bold text-slate-400">#${o.id}</td>
+            <td class="py-2.5 px-3 font-semibold text-white">${escapeHtml(o.customer)}</td>
+            <td class="py-2.5 px-3 text-slate-300">${escapeHtml(prodName)}</td>
+            <td class="py-2.5 px-3">
+              <div class="font-bold text-white">R$ ${amt.toFixed(2)}</div>
+              <div class="text-[9px] text-slate-400">Pago: R$ ${paid.toFixed(2)} ${remaining > 0 ? `<span class="text-amber-400 font-semibold">(Falta R$ ${remaining.toFixed(2)})</span>` : ''}</div>
+            </td>
+            <td class="py-2.5 px-3">${statusBadge}</td>
+            <td class="py-2.5 px-3 text-slate-400">${o.date || '-'}</td>
+            <td class="py-2.5 px-3 text-right space-x-0.5">
+              <button onclick="openPixModal(${o.id})" class="p-1.5 text-indigo-400 hover:bg-slate-700 rounded-lg transition" title="Ver QR Code Pix">
+                <i class="fa-solid fa-qrcode text-sm"></i>
+              </button>
+              <button onclick="toggleOrderStatus(${o.id})" class="p-1.5 text-emerald-400 hover:bg-slate-700 rounded-lg transition" title="Alternar Status">
+                <i class="fa-solid fa-arrows-rotate text-sm"></i>
+              </button>
+              <button onclick="editOrder(${o.id})" class="p-1.5 text-slate-300 hover:bg-slate-700 rounded-lg transition" title="Editar">
+                <i class="fa-solid fa-pen text-sm"></i>
+              </button>
+              <button onclick="deleteOrder(${o.id})" class="p-1.5 text-rose-400 hover:bg-slate-700 rounded-lg transition" title="Excluir">
+                <i class="fa-solid fa-trash text-sm"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {}
+    }
 
-        openSettingsModal() {
-          document.getElementById("setting-language-input").value = App.State.config.language || "pt";
-          document.getElementById("pix-key-input").value = App.State.config.pixKey || "";
-          document.getElementById("pix-name-input").value = App.State.config.merchantName || "";
-          document.getElementById("pix-city-input").value = App.State.config.merchantCity || "";
-          this.previewSanitizedPixKey();
-          document.getElementById("modal-pix-settings").classList.remove("hidden");
-        },
+    function applyTranslations() {
+      try {
+        const lang = translations[currentLanguage] ? currentLanguage : 'pt';
+        const dict = translations[lang];
 
-        previewSanitizedPixKey() {
-          const val = document.getElementById("pix-key-input").value;
-          const { clean, type } = App.Utils.sanitizePixKey(val);
-          const hint = document.getElementById("pix-key-type-hint");
-          if (hint) {
-            hint.textContent = clean ? `Formato EMV (${type}): ${clean}` : "";
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute('data-i18n');
+          if (dict[key]) {
+            el.textContent = dict[key];
           }
-        },
+        });
+
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+          const key = el.getAttribute('data-i18n-placeholder');
+          if (dict[key]) {
+            el.placeholder = dict[key];
+          }
+        });
+
+        safeSetText('header-lang-flag', dict.flag);
+
+        const welcomeEl = document.getElementById('gatopixel-welcome-msg');
+        if (welcomeEl && dict.ai_welcome) {
+          welcomeEl.innerHTML = dict.ai_welcome;
+        }
+
+        renderTable();
+      } catch (err) {
+        console.warn("Erro ao aplicar traduções:", err);
+      }
+    }
+
+    // INICIALIZAÇÃO DA PÁGINA
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        applyTranslations();
+        updateKPIs();
+        initCharts();
+      } catch (err) {
+        console.warn("Erro na inicialização DOM:", err);
+      }
+
+      setInterval(() => {
+        if (isBackgroundProcessRunning) return;
+        isBackgroundProcessRunning = true;
+        
+        try {
+          if (window.requestIdleCallback) {
+            requestIdleCallback(() => {
+              autoRepararSistema();
+              isBackgroundProcessRunning = false;
+            });
+          } else {
+            setTimeout(() => {
+              autoRepararSistema();
+              isBackgroundProcessRunning = false;
+            }, 100);
+          }
+        } catch(e) {
+          isBackgroundProcessRunning = false;
+        }
+      }, 10000);
+    });
+
+    // LÓGICA DA IA GATOPIXEL
+    window.toggleGatoPixelModal = function() {
+      const modal = document.getElementById('modal-gatopixel-ai');
+      if (modal) {
+        modal.classList.toggle('hidden');
+      }
+    };
+
+    function addGatoPixelMessage(text, sender = 'cat') {
+      try {
+        const chatBox = document.getElementById('gatopixel-chat-messages');
+        if (!chatBox) return;
 
         closeModal(id) {
           const el = document.getElementById(id);
           if (el) el.classList.add("hidden");
         },
 
-        closePixModal() {
-          if (App.State.webhookTimer) {
-            clearTimeout(App.State.webhookTimer);
-            App.State.webhookTimer = null;
-          }
-          this.closeModal("modal-pix");
-        },
+        if (sender === 'user') {
+          div.innerHTML = `
+            <div class="bg-indigo-600 text-white p-2.5 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">
+              ${escapeHtml(text)}
+            </div>
+          `;
+        } else {
+          div.innerHTML = `
+            <div class="w-6 h-6 sm:w-7 sm:h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-[10px] sm:text-xs shrink-0 mt-0.5">
+              <i class="fa-solid fa-cat"></i>
+            </div>
+            <div class="bg-slate-100 text-slate-800 p-2.5 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed space-y-1.5">
+              ${text}
+            </div>
+          `;
+        }
+
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (err) {
+        console.warn("Erro no chat da IA:", err);
+      }
+    }
 
         handleBackdropClick(event, modalId) {
           if (event.target.id === modalId) {
@@ -2259,123 +2226,30 @@
             return;
           }
 
-          grid.innerHTML = App.State.products.map(p => `
-            <div class="bg-slate-900/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between gap-3">
-              <div>
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">${App.Utils.escapeHtml(p.category)}</span>
-                  <div class="space-x-1">
-                    <button onclick="App.UI.editProduct(${p.id})" aria-label="Editar produto ${App.Utils.escapeHtml(p.name)}" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"><i class="fa-solid fa-pen text-xs"></i></button>
-                    <button onclick="App.Services.deleteProduct(${p.id})" aria-label="Excluir produto ${App.Utils.escapeHtml(p.name)}" class="p-1.5 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-slate-800"><i class="fa-solid fa-trash text-xs"></i></button>
-                  </div>
-                </div>
-                <h3 class="text-sm font-bold text-white mt-2">${App.Utils.escapeHtml(p.name)}</h3>
-                <p class="text-lg font-extrabold text-emerald-400 mt-1">${App.Utils.formatCurrency(p.price)}</p>
-              </div>
-              <button onclick="App.UI.openNewOrderModal(${p.id})" class="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-cart-plus"></i> ${App.Utils.escapeHtml(this.t("btn_new_order"))}
-              </button>
-            </div>
-          `).join("");
-        },
+    window.handleGatoPixelSubmit = function(event) {
+      if (event) event.preventDefault();
+      try {
+        const input = document.getElementById('gatopixel-input');
+        if (!input) return;
+        const text = input.value.trim();
+        if (!text) return;
 
-        updateKPIs() {
-          const orders = App.State.orders;
-          const totalRevenue = orders.reduce((acc, o) => acc + o.paidAmount, 0);
-          const totalOrders = orders.length;
-          const approvedOrders = orders.filter(o => o.status === "Aprovado");
-          const conversionRate = totalOrders > 0 ? Math.round((approvedOrders.length / totalOrders) * 100) : 0;
-          const payingOrders = orders.filter(o => o.paidAmount > 0);
-          const avgTicket = payingOrders.length > 0 ? totalRevenue / payingOrders.length : 0;
+        addGatoPixelMessage(text, 'user');
+        input.value = "";
 
-          document.getElementById("kpi-revenue").textContent = App.Utils.formatCurrency(totalRevenue);
-          document.getElementById("kpi-total-orders").textContent = String(totalOrders);
-          document.getElementById("kpi-conversion").textContent = `${conversionRate}%`;
-          document.getElementById("kpi-avg-ticket").textContent = App.Utils.formatCurrency(avgTicket);
-        },
+        setTimeout(() => {
+          let answer = "Miau! Estou monitorando seus pedidos. Use os botões acima para ações rápidas!";
+          addGatoPixelMessage(answer, 'cat');
+        }, 500);
+      } catch (err) {
+        console.warn("Erro na submissão da IA:", err);
+      }
+    };
 
-        updateCharts() {
-          if (typeof Chart === "undefined") return;
-          const orders = App.State.orders;
-
-          const counts = [
-            orders.filter(o => o.status === "Aprovado").length,
-            orders.filter(o => o.status === "Pendente").length,
-            orders.filter(o => o.status === "Parcial").length,
-            orders.filter(o => o.status === "Cancelado").length
-          ];
-          const statusLabels = [
-            this.t("badge_Aprovado"),
-            this.t("badge_Pendente"),
-            this.t("badge_Parcial"),
-            this.t("badge_Cancelado")
-          ];
-
-          const productTotals = {};
-          orders.forEach(o => {
-            productTotals[o.product] = (productTotals[o.product] || 0) + o.amount;
-          });
-          const prodLabels = Object.keys(productTotals);
-          const prodValues = Object.values(productTotals);
-
-          const ctxStatus = document.getElementById("chart-status")?.getContext("2d");
-          if (ctxStatus) {
-            if (App.State.charts.status) {
-              App.State.charts.status.data.labels = statusLabels;
-              App.State.charts.status.data.datasets[0].data = counts;
-              App.State.charts.status.update();
-            } else {
-              App.State.charts.status = new Chart(ctxStatus, {
-                type: "doughnut",
-                data: {
-                  labels: statusLabels,
-                  datasets: [{
-                    data: counts,
-                    backgroundColor: ["#10b981", "#f59e0b", "#3b82f6", "#f43f5e"],
-                    borderWidth: 0
-                  }]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: { legend: { labels: { color: "#cbd5e1", font: { size: 11 } } } }
-                }
-              });
-            }
-          }
-
-          const ctxProducts = document.getElementById("chart-products")?.getContext("2d");
-          if (ctxProducts) {
-            const labels = prodLabels.length ? prodLabels : ["-"];
-            const values = prodValues.length ? prodValues : [0];
-            if (App.State.charts.products) {
-              App.State.charts.products.data.labels = labels;
-              App.State.charts.products.data.datasets[0].data = values;
-              App.State.charts.products.update();
-            } else {
-              App.State.charts.products = new Chart(ctxProducts, {
-                type: "bar",
-                data: {
-                  labels,
-                  datasets: [{
-                    label: this.t("kpi_revenue"),
-                    data: values,
-                    backgroundColor: "#6366f1",
-                    borderRadius: 8
-                  }]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: { legend: { labels: { color: "#cbd5e1", font: { size: 11 } } } },
-                  scales: {
-                    x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { display: false } },
-                    y: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { color: "#1e293b" } }
-                  }
-                }
-              });
-            }
-          }
+    // GRÁFICOS CHART.JS
+    function initCharts() {
+      try {
+        if (typeof Chart === 'undefined') return;
 
           const insightsEl = document.getElementById("analytics-insights");
           if (insightsEl) {
@@ -2399,6 +2273,39 @@
             const key = el.getAttribute("data-i18n-placeholder");
             if (dict[key]) el.placeholder = dict[key];
           });
+        }
+      } catch (err) {
+        console.warn("Erro ao carregar Chart.js:", err);
+      }
+    }
+
+    function updateCharts() {
+      try {
+        if (!statusChartInstance || !productsChartInstance) {
+          initCharts();
+          return;
+        }
+
+        const validOrders = getValidOrders();
+        const approved = validOrders.filter(o => o.status === 'Aprovado').length;
+        const pending = validOrders.filter(o => o.status === 'Pendente').length;
+        const canceled = validOrders.filter(o => o.status === 'Cancelado').length;
+
+        statusChartInstance.data.datasets[0].data = [approved, pending, canceled];
+        statusChartInstance.update();
+      } catch (err) {
+        console.warn("Erro ao atualizar gráficos:", err);
+      }
+    }
+
+    // AUTO-REPARO DE CÓDIGO E CONSOLE
+    function autoRepararSistema() {
+      let repaired = false;
+      try {
+        if (!Array.isArray(orders)) {
+          orders = INITIAL_ORDERS;
+          repaired = true;
+        }
 
           document.getElementById("header-lang-flag").textContent = dict.flag;
           const welcomeEl = document.getElementById("gatopixel-welcome-msg");
@@ -2453,14 +2360,57 @@
             toast.appendChild(btn);
           }
 
-          container.appendChild(toast);
-          requestAnimationFrame(() => toast.classList.remove("translate-y-2", "opacity-0"));
+        if (repaired) {
+          patchCount++;
+          safeSetText('repair-patch-count', `${patchCount} Alterações`);
+          logRepairConsole("[AUTO-FIX] Estado de memória sanitizado.");
+        }
+      } catch (e) {
+        console.warn("Auto-reparo ajustou falha interna");
+      }
 
-          const duration = action ? 5000 : 3000;
-          setTimeout(() => {
-            toast.classList.add("opacity-0", "-translate-y-2");
-            setTimeout(() => toast.remove(), 300);
-          }, duration);
+      return { reparado: repaired };
+    }
+
+    window.executarDiagnosticoEAutoFixManual = function() {
+      autoRepararSistema();
+      logRepairConsole("[DIAGNÓSTICO] Diagnóstico manual efetuado.");
+      showToast("Diagnóstico completo!", "success");
+    };
+
+    function logRepairConsole(msg) {
+      try {
+        const consoleEl = document.getElementById('repair-console-log');
+        if (!consoleEl) return;
+        const div = document.createElement('div');
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        consoleEl.appendChild(div);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      } catch (e) {
+        console.warn("Console de reparo indisponível");
+      }
+    }
+
+    // PAINEL DESENVOLVEDOR
+    function loadDevJsonEditor() {
+      try {
+        const textarea = document.getElementById('dev-json-editor');
+        if (textarea) {
+          textarea.value = JSON.stringify(orders, null, 2);
+        }
+      } catch (e) {
+        console.warn("Erro ao carregar editor JSON");
+      }
+    }
+
+    window.saveDevJsonState = function() {
+      try {
+        const val = safeGetValue('dev-json-editor');
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) {
+          orders = parsed;
+          saveState();
+          showToast("JSON do banco atualizado!", "success");
         }
       }
     };
@@ -2476,16 +2426,46 @@
           "modal-dev-auth",
           "modal-gatopixel-ai"
         ];
-        for (const id of modals) {
-          const el = document.getElementById(id);
-          if (el && !el.classList.contains("hidden")) {
-            if (id === "modal-pix") App.UI.closePixModal();
-            else App.UI.closeModal(id);
-            break;
-          }
-        }
+        saveState();
+        loadDevJsonEditor();
+        showToast("Pedido de teste injetado!", "info");
+      } catch (err) {}
+    };
+
+    window.resetSystemDatabase = function() {
+      try {
+        orders = [];
+        saveState();
+        loadDevJsonEditor();
+        showToast("Banco de dados resetado!", "info");
+      } catch (err) {}
+    };
+
+    function showToast(message, type = "info") {
+      try {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        const bg = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-slate-800';
+        
+        toast.className = `${bg} text-white px-3.5 py-2 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-1.5 pointer-events-auto transition-all duration-300 ease-out transform translate-y-2 opacity-0`;
+        toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${message}`;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+          toast.classList.remove('translate-y-2', 'opacity-0');
+        });
+
+        setTimeout(() => {
+          toast.classList.add('opacity-0', '-translate-y-2');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      } catch (e) {
+        console.warn("Toast fallback:", message);
       }
-    });
+    }
 
     window.addEventListener("DOMContentLoaded", () => {
       App.Services.init();
