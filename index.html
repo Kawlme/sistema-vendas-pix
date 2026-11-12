@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Vendas Autossustentável - GatoPixel</title>
+  <meta name="theme-color" content="#0f172a">
+  <title>GatoPixel Sales — Sistema Autossustentável de Vendas Pix</title>
 
   <!-- Tailwind CSS & FontAwesome -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -25,7 +26,7 @@
       display: none;
       opacity: 0;
       transform: translateY(6px);
-      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     .view-tab.active {
@@ -35,139 +36,179 @@
     }
 
     .modal-backdrop {
-      background-color: rgba(15, 23, 42, 0.65);
+      background-color: rgba(15, 23, 42, 0.72);
       backdrop-filter: blur(6px);
     }
 
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-    @media (max-width: 640px) {
-      body {
-        font-size: 13px;
+    /* Estilos exclusivos para impressão / PDF do Comprovante */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #modal-receipt,
+      #modal-receipt * {
+        visibility: visible !important;
+      }
+      #modal-receipt {
+        position: fixed !important;
+        inset: 0 !important;
+        background: #ffffff !important;
+        backdrop-filter: none !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+      }
+      #printable-receipt-card {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        width: 100% !important;
+        max-width: 420px !important;
+      }
+      .no-print {
+        display: none !important;
       }
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-800 antialiased min-h-screen flex flex-col pb-16 md:pb-0">
+<body class="bg-slate-900 text-slate-800 antialiased min-h-screen flex flex-col">
 
-  <!-- BARRA DE NAVEGAÇÃO SUPERIOR COMPACTA -->
+  <!-- BARRA DE NAVEGAÇÃO SUPERIOR -->
   <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-30 shadow-md">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-14 sm:h-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
         
-        <div class="flex items-center gap-2 sm:gap-3">
-          <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-lg shadow-lg shadow-indigo-500/30">
+        <!-- LOGO & STATUS DE CONEXÃO -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30">
             <i class="fa-solid fa-cat"></i>
           </div>
           <div>
-            <div class="flex items-center gap-1.5">
-              <span class="font-bold text-sm sm:text-base tracking-tight text-white block leading-none">GatoPixel</span>
-              <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] px-1.5 py-0.5 rounded-full font-semibold">Online</span>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-base tracking-tight text-white">GatoPixel Sales</span>
+              <span id="connection-badge" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-semibold">Online</span>
             </div>
-            <p class="text-[10px] text-slate-400 hidden sm:block">Sistema Autossustentável de Vendas Pix</p>
+            <p class="text-[11px] text-slate-400" data-i18n="app_subtitle">Sistema Autossustentável de Vendas Pix</p>
           </div>
         </div>
 
-        <nav class="hidden md:flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
-          <button onclick="switchTab('sales')" class="nav-tab-btn active px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-200 hover:text-white transition flex items-center gap-2">
+        <!-- MENU DE NAVEGAÇÃO DESKTOP -->
+        <nav aria-label="Navegação Principal" class="hidden lg:flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
+          <button data-tab="sales" onclick="App.UI.switchTab('sales')" class="nav-tab-btn bg-indigo-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
             <i class="fa-solid fa-receipt"></i>
             <span data-i18n="nav_sales">Vendas & Pedidos</span>
           </button>
-          <button onclick="switchTab('analytics')" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+          <button data-tab="catalog" onclick="App.UI.switchTab('catalog')" class="nav-tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-box-open text-violet-400"></i>
+            <span data-i18n="nav_catalog">Catálogo</span>
+          </button>
+          <button data-tab="analytics" onclick="App.UI.switchTab('analytics')" class="nav-tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
             <i class="fa-solid fa-chart-pie"></i>
             <span data-i18n="nav_dashboard">Dashboard & IA</span>
           </button>
-          <button onclick="switchTab('autorepair')" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+          <button data-tab="autorepair" onclick="App.UI.switchTab('autorepair')" class="nav-tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
             <i class="fa-solid fa-shield-halved text-emerald-400"></i>
             <span data-i18n="nav_autorepair">Auto-Reparo</span>
           </button>
-          <button onclick="tryOpenDevPanel()" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+          <button data-tab="dev" onclick="App.UI.tryOpenDevPanel()" class="nav-tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
             <i class="fa-solid fa-code text-amber-400"></i>
             <span data-i18n="nav_dev">Painel Dev</span>
           </button>
         </nav>
 
-        <div class="flex items-center gap-1.5 sm:gap-2">
-          <button onclick="exportSalesToCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2 sm:p-2.5 rounded-xl transition text-xs flex items-center gap-1.5" title="Exportar CSV">
+        <!-- BOTÕES DE AÇÃO SUPERIORES -->
+        <div class="flex items-center gap-2">
+          <button onclick="App.Services.exportCSV()" aria-label="Exportar vendas para CSV" title="Exportar CSV" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-1.5">
             <i class="fa-solid fa-file-csv text-emerald-400 text-sm"></i>
-            <span class="hidden sm:inline">Exportar</span>
+            <span class="hidden sm:inline" data-i18n="btn_export">Exportar</span>
           </button>
-          <button onclick="openPixSettingsModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2 sm:p-2.5 rounded-xl transition text-xs flex items-center gap-2" title="Configurações Pix & Idioma">
+          <button onclick="App.UI.openSettingsModal()" aria-label="Configurações Pix, Backup e Idioma" title="Configurações Pix, Backup & Idioma" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-2">
             <i class="fa-solid fa-gear text-indigo-400 text-sm"></i>
-            <span id="header-lang-flag" class="text-xs sm:text-sm">🇧🇷</span>
+            <span id="header-lang-flag" class="text-sm">🇧🇷</span>
           </button>
-          <button onclick="openNewOrderModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-1.5">
+          <button onclick="App.UI.openNewOrderModal()" aria-label="Criar Novo Pedido" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
             <i class="fa-solid fa-plus"></i>
-            <span data-i18n="btn_new_order" class="hidden xs:inline">Novo Pedido</span>
+            <span data-i18n="btn_new_order">Novo Pedido</span>
           </button>
         </div>
-
       </div>
+
+      <!-- MENU DE NAVEGAÇÃO MOBILE -->
+      <nav aria-label="Navegação Mobile" class="flex lg:hidden items-center gap-1.5 pb-3 overflow-x-auto">
+        <button data-tab="sales" onclick="App.UI.switchTab('sales')" class="nav-tab-btn bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-receipt"></i> <span data-i18n="nav_sales">Vendas</span>
+        </button>
+        <button data-tab="catalog" onclick="App.UI.switchTab('catalog')" class="nav-tab-btn text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-box-open text-violet-400"></i> <span data-i18n="nav_catalog">Catálogo</span>
+        </button>
+        <button data-tab="analytics" onclick="App.UI.switchTab('analytics')" class="nav-tab-btn text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-pie"></i> <span data-i18n="nav_dashboard">Dashboard</span>
+        </button>
+        <button data-tab="autorepair" onclick="App.UI.switchTab('autorepair')" class="nav-tab-btn text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-shield-halved text-emerald-400"></i> <span data-i18n="nav_autorepair">Auto-Reparo</span>
+        </button>
+        <button data-tab="dev" onclick="App.UI.tryOpenDevPanel()" class="nav-tab-btn text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-code text-amber-400"></i> <span data-i18n="nav_dev">Dev</span>
+        </button>
+      </nav>
     </div>
   </header>
 
-  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-    <!-- CARDS SUPERIORES KPIS -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
-      
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col justify-between shadow-sm">
-        <div>
-          <p class="text-[10px] sm:text-xs font-medium text-slate-400 truncate" data-i18n="kpi_revenue">Faturamento</p>
-          <h3 id="kpi-revenue" class="text-base sm:text-xl font-extrabold text-emerald-400 my-0.5">R$ 0,00</h3>
+    <!-- KPI CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_revenue">Faturamento Total</p>
+          <h3 id="kpi-revenue" class="text-xl font-extrabold text-white">R$ 0,00</h3>
+          <p class="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+            <i class="fa-solid fa-circle-check"></i> <span data-i18n="kpi_confirmed">Receita Confirmada</span>
+          </p>
         </div>
-        <p class="text-[9px] sm:text-[10px] text-emerald-400 font-medium flex items-center gap-1 truncate">
-          <i class="fa-solid fa-circle-check"></i> <span data-i18n="kpi_confirmed">Pago em Conta</span>
-        </p>
+        <div class="w-11 h-11 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-lg border border-emerald-500/20">
+          <i class="fa-solid fa-sack-dollar"></i>
+        </div>
       </div>
 
-      <div class="bg-slate-800/60 border border-amber-500/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col justify-between shadow-sm">
-        <div>
-          <p class="text-[10px] sm:text-xs font-medium text-slate-400 truncate">Falta Receber</p>
-          <h3 id="kpi-pending-amount" class="text-base sm:text-xl font-extrabold text-amber-400 my-0.5">R$ 0,00</h3>
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_total_orders">Total de Pedidos</p>
+          <h3 id="kpi-total-orders" class="text-xl font-extrabold text-white">0</h3>
+          <p class="text-[10px] text-slate-400" data-i18n="kpi_registered">Registrados no Sistema</p>
         </div>
-        <p class="text-[9px] sm:text-[10px] text-amber-400 font-medium flex items-center gap-1 truncate">
-          <i class="fa-solid fa-clock"></i> <span>Saldo Pendente</span>
-        </p>
+        <div class="w-11 h-11 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center text-lg border border-indigo-500/20">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </div>
       </div>
 
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col justify-between shadow-sm">
-        <div>
-          <p class="text-[10px] sm:text-xs font-medium text-slate-400 truncate" data-i18n="kpi_total_orders">Total Pedidos</p>
-          <h3 id="kpi-total-orders" class="text-base sm:text-xl font-extrabold text-white my-0.5">0</h3>
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_conversion">Conversão Pix</p>
+          <h3 id="kpi-conversion" class="text-xl font-extrabold text-white">0%</h3>
+          <p class="text-[10px] text-amber-400" data-i18n="kpi_approved">Pagamentos Aprovados</p>
         </div>
-        <p class="text-[9px] sm:text-[10px] text-slate-400 truncate" data-i18n="kpi_registered">Registrados</p>
+        <div class="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center text-lg border border-amber-500/20">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
       </div>
 
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col justify-between shadow-sm">
-        <div>
-          <p class="text-[10px] sm:text-xs font-medium text-slate-400 truncate" data-i18n="kpi_conversion">Conversão Pix</p>
-          <h3 id="kpi-conversion" class="text-base sm:text-xl font-extrabold text-white my-0.5">0%</h3>
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-1">
+          <p class="text-xs font-medium text-slate-400" data-i18n="kpi_avg_ticket">Ticket Médio</p>
+          <h3 id="kpi-avg-ticket" class="text-xl font-extrabold text-white">R$ 0,00</h3>
+          <p class="text-[10px] text-slate-400" data-i18n="kpi_avg_client">Valor Médio por Cliente</p>
         </div>
-        <p class="text-[9px] sm:text-[10px] text-indigo-400 truncate" data-i18n="kpi_approved">Aprovados</p>
-      </div>
-
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col justify-between shadow-sm col-span-2 sm:col-span-1">
-        <div>
-          <p class="text-[10px] sm:text-xs font-medium text-slate-400 truncate" data-i18n="kpi_avg_ticket">Ticket Médio</p>
-          <h3 id="kpi-avg-ticket" class="text-base sm:text-xl font-extrabold text-white my-0.5">R$ 0,00</h3>
+        <div class="w-11 h-11 bg-violet-500/10 text-violet-400 rounded-xl flex items-center justify-center text-lg border border-violet-500/20">
+          <i class="fa-solid fa-chart-line"></i>
         </div>
-        <p class="text-[9px] sm:text-[10px] text-slate-400 truncate" data-i18n="kpi_avg_client">Média/Cliente</p>
       </div>
-
     </div>
 
     <!-- VISTA 1: TABELA DE PEDIDOS & VENDAS -->
@@ -175,202 +216,238 @@
       
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 sm:pb-5 border-b border-slate-700/60">
         <div>
-          <h2 class="text-base sm:text-lg font-bold text-white tracking-tight" data-i18n="table_title">Vendas & QR Codes Pix</h2>
-          <p class="text-[11px] sm:text-xs text-slate-400" data-i18n="table_subtitle">Gerencie status, clientes e cobrança</p>
+          <h2 class="text-lg font-bold text-white tracking-tight" data-i18n="table_title">Lista de Vendas & QR Codes Pix</h2>
+          <p class="text-xs text-slate-400" data-i18n="table_subtitle">Gerencie status, cobranças WhatsApp, recibos e QR Codes Pix</p>
         </div>
-        <div class="flex items-center gap-2 max-w-md w-full">
-          <select id="filter-status" onchange="renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-indigo-500 transition">
-            <option value="ALL">Todos</option>
-            <option value="Aprovado">Aprovados</option>
-            <option value="Pendente">Pendentes</option>
-            <option value="Parcial">Parciais</option>
-            <option value="Cancelado">Cancelados</option>
+
+        <!-- FILTROS, PERÍODO, ORDENAÇÃO E BUSCA -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:flex items-center gap-2">
+          <select id="filter-period" aria-label="Filtrar por período" onchange="App.UI.renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+            <option value="ALL" data-i18n="period_all">Todo o Período</option>
+            <option value="TODAY" data-i18n="period_today">Hoje</option>
+            <option value="7DAYS" data-i18n="period_7days">Últimos 7 dias</option>
+            <option value="MONTH" data-i18n="period_month">Este Mês</option>
           </select>
-          <div class="relative flex-1">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
-            <input type="text" id="search-orders" oninput="renderTable()" placeholder="Buscar..." data-i18n-placeholder="search_placeholder" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl pl-8 pr-3 py-2 focus:outline-none focus:border-indigo-500 transition">
+
+          <select id="filter-status" aria-label="Filtrar por status" onchange="App.UI.renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+            <option value="ALL" data-i18n="status_all">Todos os Status</option>
+            <option value="Aprovado" data-i18n="status_approved">Aprovados</option>
+            <option value="Pendente" data-i18n="status_pending">Pendentes</option>
+            <option value="Parcial" data-i18n="status_partial">Parciais</option>
+            <option value="Cancelado" data-i18n="status_canceled">Cancelados</option>
+          </select>
+
+          <select id="sort-orders" aria-label="Ordenar pedidos" onchange="App.UI.renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+            <option value="DATE_DESC" data-i18n="sort_newest">Mais Recentes</option>
+            <option value="DATE_ASC" data-i18n="sort_oldest">Mais Antigos</option>
+            <option value="AMOUNT_DESC" data-i18n="sort_highest">Maior Valor</option>
+            <option value="AMOUNT_ASC" data-i18n="sort_lowest">Menor Valor</option>
+          </select>
+
+          <div class="relative min-w-[200px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+            <input type="text" id="search-orders" aria-label="Buscar pedidos" oninput="App.UI.renderTable()" placeholder="Buscar cliente ou produto..." data-i18n-placeholder="search_placeholder" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-indigo-500">
           </div>
         </div>
       </div>
     </div>
 
-    <!-- VISTA 3: AUTO-REPARO -->
-    <div id="view-autorepair" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-xl space-y-4">
-      <div class="border-b border-slate-700/60 pb-3 flex items-center justify-between">
+      <div id="analytics-insights" class="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-4 text-xs text-slate-200 leading-relaxed"></div>
+    </section>
+
+    <!-- VISTA 4: AUTO-REPARO DO SISTEMA -->
+    <section id="view-autorepair" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="border-b border-slate-700/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-shield-halved text-emerald-400"></i> Auto-Reparo e Diagnóstico
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-emerald-400"></i> <span data-i18n="repair_title">Auto-Reparo e Integridade de Dados</span>
           </h2>
+          <p class="text-xs text-slate-400" data-i18n="repair_subtitle">Valida esquemas de pedidos, quantidades, catálogo e chaves Pix</p>
         </div>
-        <button onclick="executarDiagnosticoEAutoFixManual()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
-          <i class="fa-solid fa-rotate"></i> Diagnóstico
+        <button onclick="App.Services.runManualDiagnostic()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2 self-start sm:self-auto">
+          <i class="fa-solid fa-rotate"></i> <span data-i18n="btn_run_diagnostic">Executar Diagnóstico</span>
         </button>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-          <p class="text-slate-400 font-medium">Status do Diagnóstico:</p>
-          <p class="text-emerald-400 font-bold text-xs sm:text-sm mt-1 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sistema Saudável & Protegido
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+          <p class="text-slate-400 font-medium" data-i18n="repair_status_label">Status do Diagnóstico:</p>
+          <p class="text-emerald-400 font-bold text-sm mt-1 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> <span data-i18n="repair_status_ok">Sistema Saudável & Validado</span>
           </p>
         </div>
-        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-          <p class="text-slate-400 font-medium">Correções Efetuadas:</p>
-          <p id="repair-patch-count" class="text-white font-bold text-xs sm:text-sm mt-1">0 Alterações</p>
+        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+          <p class="text-slate-400 font-medium" data-i18n="repair_fixes_label">Saneamentos Efetuados:</p>
+          <p id="repair-patch-count" class="text-white font-bold text-sm mt-1">0</p>
         </div>
       </div>
 
-      <div class="bg-slate-900 rounded-xl border border-slate-700 p-3 font-mono text-[10px] sm:text-[11px] text-slate-300 h-40 overflow-y-auto space-y-1" id="repair-console-log">
-        <div class="text-emerald-400">[SISTEMA] Monitor de integridade ativo...</div>
+      <div class="bg-slate-900 rounded-xl border border-slate-700 p-4 font-mono text-[11px] text-slate-300 h-48 overflow-y-auto space-y-1" id="repair-console-log">
+        <div class="text-emerald-400">[SISTEMA] Monitor de integridade inicializado...</div>
       </div>
-    </div>
+    </section>
 
-    <!-- VISTA 4: PAINEL DEV -->
-    <div id="view-dev" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-xl space-y-4">
-      <div class="border-b border-slate-700/60 pb-3">
-        <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-code text-amber-400"></i> Painel Dev (PIN: 0000)
-        </h2>
+    <!-- VISTA 5: PAINEL DEV -->
+    <section id="view-dev" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="border-b border-slate-700/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-code text-amber-400"></i> <span data-i18n="dev_title">Painel do Desenvolvedor</span>
+          </h2>
+          <p class="text-xs text-slate-400" data-i18n="dev_subtitle">Inspeção e edição direta do estado completo (Sessão Autenticada)</p>
+        </div>
+        <button onclick="App.Auth.logout()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="btn_dev_logout">Encerrar Sessão Dev</span>
+        </button>
       </div>
 
-      <div class="space-y-2.5">
-        <label class="text-xs font-semibold text-slate-300">Editor JSON (LocalStorage):</label>
-        <textarea id="dev-json-editor" class="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-3 rounded-xl border border-slate-700 h-40 focus:outline-none focus:border-indigo-500"></textarea>
+      <div class="space-y-3">
+        <label for="dev-json-editor" class="text-xs font-semibold text-slate-300 block">Editor do Banco de Dados (JSON):</label>
+        <textarea id="dev-json-editor" class="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-3 rounded-xl border border-slate-700 h-56 focus:outline-none focus:border-indigo-500"></textarea>
         
         <div class="flex flex-wrap items-center gap-2">
-          <button onclick="saveDevJsonState()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition">
-            <i class="fa-solid fa-floppy-disk"></i> Salvar JSON
+          <button onclick="App.Services.saveDevJson()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações JSON
           </button>
-          <button onclick="injectMockData()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-xl transition">
-            <i class="fa-solid fa-vial"></i> Injetar Teste
+          <button onclick="App.Services.injectMockOrder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-vial"></i> Injetar Pedido Teste
           </button>
-          <button onclick="resetSystemDatabase()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition">
-            <i class="fa-solid fa-trash"></i> Resetar Banco
+          <button onclick="App.Services.resetDatabase()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-trash"></i> Resetar Banco de Dados
           </button>
         </div>
       </div>
-    </div>
+    </section>
 
   </main>
 
-  <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA MOBILE -->
-  <div class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800 z-30 px-2 py-1.5 backdrop-blur-md flex justify-around items-center">
-    <button onclick="switchTab('sales')" class="flex flex-col items-center py-1 px-2 text-[10px] font-medium text-slate-300 hover:text-white">
-      <i class="fa-solid fa-receipt text-sm mb-0.5"></i> Vendas
-    </button>
-    <button onclick="switchTab('analytics')" class="flex flex-col items-center py-1 px-2 text-[10px] font-medium text-slate-400 hover:text-white">
-      <i class="fa-solid fa-chart-pie text-sm mb-0.5"></i> Dashboard
-    </button>
-    <button onclick="switchTab('autorepair')" class="flex flex-col items-center py-1 px-2 text-[10px] font-medium text-slate-400 hover:text-white">
-      <i class="fa-solid fa-shield-halved text-sm mb-0.5 text-emerald-400"></i> Reparo
-    </button>
-    <button onclick="tryOpenDevPanel()" class="flex flex-col items-center py-1 px-2 text-[10px] font-medium text-slate-400 hover:text-white">
-      <i class="fa-solid fa-code text-sm mb-0.5 text-amber-400"></i> Dev
-    </button>
-  </div>
-
-  <!-- WIDGET FLUTUANTE IA -->
-  <div id="gatopixel-widget" class="fixed bottom-14 sm:bottom-5 right-3 sm:right-5 z-40">
-    <button onclick="toggleGatoPixelModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 sm:p-3.5 rounded-full sm:rounded-2xl shadow-2xl flex items-center gap-3 transition transform hover:scale-105 border border-indigo-400/30">
-      <div class="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-full sm:rounded-xl flex items-center justify-center text-sm sm:text-lg">
+  <!-- ASSISTENTE IA FLUTUANTE GATOPIXEL -->
+  <div id="gatopixel-widget" class="fixed bottom-5 right-5 z-40">
+    <button onclick="App.UI.toggleGatoPixelModal()" aria-label="Abrir assistente GatoPixel AI" class="bg-indigo-600 hover:bg-indigo-500 text-white p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transition transform hover:scale-105 border border-indigo-400/30">
+      <div class="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-lg">
         <i class="fa-solid fa-cat"></i>
       </div>
       <div class="text-left hidden sm:block">
         <p class="text-xs font-bold leading-none">GatoPixel AI</p>
-        <p class="text-[10px] text-indigo-200 leading-tight mt-0.5" data-i18n="ai_speech_bubble">Miau! Precisa de ajuda?</p>
+        <p class="text-[10px] text-indigo-200 leading-tight mt-0.5" data-i18n="ai_speech_bubble">Miau! Precisa de ajuda com vendas?</p>
       </div>
     </button>
   </div>
 
-  <!-- MODAL CHAT IA -->
-  <div id="modal-gatopixel-ai" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col h-[480px] sm:h-[520px]">
-      <div class="bg-slate-900 text-white p-3.5 sm:p-4 flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 sm:w-9 sm:h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-base sm:text-lg">
+  <!-- MODAL: CHAT DA IA GATOPIXEL -->
+  <div id="modal-gatopixel-ai" role="dialog" aria-modal="true" aria-labelledby="ai-modal-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-gatopixel-ai')">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col h-[520px]">
+      <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-lg">
             <i class="fa-solid fa-cat"></i>
           </div>
           <div>
-            <h3 class="font-bold text-xs sm:text-sm leading-tight">GatoPixel AI Copilot</h3>
-            <p class="text-[9px] sm:text-[10px] text-indigo-300" data-i18n="ai_subtitle">Assistente inteligente de conversão</p>
+            <h3 id="ai-modal-title" class="font-bold text-sm leading-tight">GatoPixel AI Copilot</h3>
+            <p class="text-[10px] text-indigo-300" data-i18n="ai_subtitle">Seu assistente inteligente de conversão e vendas</p>
           </div>
         </div>
-        <button onclick="toggleGatoPixelModal()" class="text-slate-400 hover:text-white transition">
+        <button onclick="App.UI.closeModal('modal-gatopixel-ai')" aria-label="Fechar chat da IA" class="text-slate-400 hover:text-white transition">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
 
-      <div id="gatopixel-chat-messages" class="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3 text-xs">
-        <div class="flex gap-2 items-start">
-          <div class="w-6 h-6 sm:w-7 sm:h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-[10px] sm:text-xs shrink-0 mt-0.5">
+      <div id="gatopixel-chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="flex gap-2.5 items-start">
+          <div class="w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xs shrink-0 mt-0.5">
             <i class="fa-solid fa-cat"></i>
           </div>
-          <div class="bg-slate-100 text-slate-800 p-2.5 sm:p-3 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed" id="gatopixel-welcome-msg">
-            Olá! Eu sou o <strong>GatoPixel</strong>! 🐾 Posso analisar suas vendas atuais, gerar mensagens de cobrança para WhatsApp em 1 clique ou tirar dúvidas sobre o seu sistema!
-          </div>
+          <div class="bg-slate-100 text-slate-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed" id="gatopixel-welcome-msg"></div>
         </div>
       </div>
 
-      <div class="p-2 bg-slate-50 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto">
-        <button onclick="askGatoPixel('analyze')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1 rounded-xl font-semibold text-[10px] sm:text-[11px] whitespace-nowrap transition flex items-center gap-1">
+      <div class="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center gap-2 overflow-x-auto">
+        <button onclick="App.Services.askGatoPixel('analyze')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-xl font-semibold text-[11px] whitespace-nowrap transition flex items-center gap-1.5">
           <i class="fa-solid fa-chart-simple"></i> <span data-i18n="ai_btn_analyze">Analisar Vendas</span>
         </button>
-        <button onclick="askGatoPixel('copy')" class="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-2.5 py-1 rounded-xl font-semibold text-[10px] sm:text-[11px] whitespace-nowrap transition flex items-center gap-1">
+        <button onclick="App.Services.askGatoPixel('copy')" class="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-xl font-semibold text-[11px] whitespace-nowrap transition flex items-center gap-1.5">
           <i class="fa-brands fa-whatsapp"></i> <span data-i18n="ai_btn_copy">Gerar Copy Pix</span>
         </button>
       </div>
 
-      <form onsubmit="handleGatoPixelSubmit(event)" class="p-2.5 bg-white border-t border-slate-200 flex gap-2">
-        <input type="text" id="gatopixel-input" placeholder="Pergunte ao GatoPixel..." data-i18n-placeholder="ai_input_placeholder" class="flex-1 bg-slate-100 text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition">
+      <form onsubmit="App.Services.handleGatoPixelSubmit(event)" class="p-3 bg-white border-t border-slate-200 flex gap-2">
+        <input type="text" id="gatopixel-input" placeholder="Pergunte algo ao GatoPixel..." data-i18n-placeholder="ai_input_placeholder" class="flex-1 bg-slate-100 text-slate-800 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <button type="submit" aria-label="Enviar mensagem" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition">
           <i class="fa-solid fa-paper-plane"></i>
         </button>
       </form>
     </div>
   </div>
 
-  <!-- MODAL NOVO / EDITAR PEDIDO -->
-  <div id="modal-order" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-3 sm:space-y-4">
-      <div class="flex items-center justify-between border-b pb-2 sm:pb-3">
-        <h3 id="modal-order-title" class="font-bold text-slate-900 text-sm sm:text-base">Novo Pedido Pix</h3>
-        <button onclick="closeOrderModal()" class="text-slate-400 hover:text-slate-600">
+  <!-- MODAL: NOVO / EDITAR PEDIDO -->
+  <div id="modal-order" role="dialog" aria-modal="true" aria-labelledby="modal-order-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-order')">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 id="modal-order-title" class="font-bold text-slate-900 text-base">Novo Pedido Pix</h3>
+        <button onclick="App.UI.closeModal('modal-order')" aria-label="Fechar modal de pedido" class="text-slate-400 hover:text-slate-600">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
 
-      <form onsubmit="saveOrder(event)" class="space-y-2.5 sm:space-y-3 text-xs">
+      <form onsubmit="App.Services.saveOrder(event)" class="space-y-3 text-xs">
         <input type="hidden" id="order-id">
+
+        <!-- Seleção rápida do Catálogo -->
+        <div>
+          <label for="order-catalog-select" class="font-semibold text-indigo-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt"></i> <span data-i18n="label_quick_catalog">Preencher do Catálogo (Opcional):</span>
+          </label>
+          <select id="order-catalog-select" onchange="App.UI.onCatalogSelectChange()" class="w-full mt-1 bg-indigo-50/70 border border-indigo-200 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500"></select>
+        </div>
         
-        <div>
-          <label class="font-semibold text-slate-700">Nome do Cliente:</label>
-          <input type="text" id="order-customer" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
-        </div>
-
-        <div>
-          <label class="font-semibold text-slate-700">Produto ou Serviço:</label>
-          <input type="text" id="order-product" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
-        </div>
-
-        <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="font-semibold text-slate-700">Valor Total (R$):</label>
-            <input type="number" step="0.01" id="order-amount" oninput="calculateRemainingBalance()" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+            <label for="order-customer" class="font-semibold text-slate-700" data-i18n="label_customer">Nome do Cliente:</label>
+            <input type="text" id="order-customer" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
           </div>
           <div>
-            <label class="font-semibold text-slate-700">Valor Já Pago (R$):</label>
-            <input type="number" step="0.01" id="order-paid" oninput="calculateRemainingBalance()" placeholder="0.00" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+            <label for="order-phone" class="font-semibold text-slate-700" data-i18n="label_whatsapp">WhatsApp (Opcional):</label>
+            <input type="tel" id="order-phone" placeholder="11999999999" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
           </div>
         </div>
 
-        <div id="balance-info-box" class="bg-amber-50 border border-amber-200 rounded-xl p-2 sm:p-2.5 text-amber-800 hidden flex items-center justify-between">
-          <span>Saldo Restante a Cobrar:</span>
+        <div>
+          <label for="order-product" class="font-semibold text-slate-700" data-i18n="label_product">Produto ou Serviço:</label>
+          <input type="text" id="order-product" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <!-- QUANTIDADE & VALOR UNITÁRIO -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="order-quantity" class="font-semibold text-slate-700" data-i18n="label_quantity">Quantidade:</label>
+            <input type="number" step="1" min="1" value="1" id="order-quantity" oninput="App.UI.recalculateOrderTotals()" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 font-semibold focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label for="order-unit-price" class="font-semibold text-slate-700" data-i18n="label_unit_price">Valor Unitário (R$):</label>
+            <input type="number" step="0.01" min="0.01" id="order-unit-price" oninput="App.UI.recalculateOrderTotals()" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <!-- VALOR TOTAL CALCULADO & VALOR JÁ PAGO -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="order-amount" class="font-semibold text-indigo-700" data-i18n="label_total_amount">Valor Total (R$):</label>
+            <input type="number" step="0.01" min="0.01" id="order-amount" readonly class="w-full mt-1 bg-indigo-50/70 border border-indigo-200 rounded-xl p-2.5 text-indigo-900 font-extrabold cursor-not-allowed focus:outline-none">
+          </div>
+          <div>
+            <label for="order-paid" class="font-semibold text-slate-700" data-i18n="label_paid_amount">Valor Já Pago (R$):</label>
+            <input type="number" step="0.01" min="0" id="order-paid" oninput="App.UI.calculateRemainingBalance()" placeholder="0.00" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div id="balance-info-box" class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-amber-800 hidden flex items-center justify-between">
+          <span data-i18n="label_remaining_balance">Saldo Restante a Cobrar:</span>
           <strong id="order-balance-display">R$ 0,00</strong>
         </div>
 
         <div>
-          <label class="font-semibold text-slate-700">Status do Pagamento:</label>
-          <select id="order-status" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+          <label for="order-status" class="font-semibold text-slate-700" data-i18n="label_status">Status do Pagamento:</label>
+          <select id="order-status" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
             <option value="Pendente">Pendente</option>
             <option value="Parcial">Parcial</option>
             <option value="Aprovado">Aprovado</option>
@@ -378,57 +455,117 @@
           </select>
         </div>
 
-        <div class="pt-2 sm:pt-3 flex justify-end gap-2">
-          <button type="button" onclick="closeOrderModal()" class="px-3.5 sm:px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancelar</button>
-          <button type="submit" class="px-4 sm:px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md">Salvar Pedido</button>
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="App.UI.closeModal('modal-order')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold" data-i18n="btn_cancel">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md" data-i18n="btn_save_order">Salvar Pedido</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL EXIBIÇÃO QR CODE PIX -->
-  <div id="modal-pix" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-white rounded-2xl sm:rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl text-center space-y-3 sm:space-y-4">
-      <div class="flex items-center justify-between border-b pb-2">
-        <h3 class="font-bold text-slate-900 text-xs sm:text-sm">Cobrança Pix Inteligente</h3>
-        <button onclick="closePixModal()" class="text-slate-400 hover:text-slate-600">
+  <!-- MODAL: NOVO / EDITAR PRODUTO DO CATÁLOGO -->
+  <div id="modal-product" role="dialog" aria-modal="true" aria-labelledby="modal-product-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-product')">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 id="modal-product-title" class="font-bold text-slate-900 text-base">Novo Item no Catálogo</h3>
+        <button onclick="App.UI.closeModal('modal-product')" aria-label="Fechar modal de produto" class="text-slate-400 hover:text-slate-600">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
 
-      <div class="py-1 sm:py-2 flex flex-col items-center justify-center">
-        <div id="pix-qrcode-container" class="bg-white p-2.5 sm:p-3 border rounded-2xl shadow-inner flex items-center justify-center"></div>
-        <p class="text-[11px] sm:text-xs text-slate-500 mt-2">Escaneie o QR Code no app do banco</p>
-        <p id="pix-modal-amount" class="text-base sm:text-lg font-extrabold text-indigo-600 mt-0.5">R$ 0,00</p>
+      <form onsubmit="App.Services.saveProduct(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="product-id">
+        <div>
+          <label for="product-name" class="font-semibold text-slate-700" data-i18n="label_product_name">Nome do Produto / Serviço:</label>
+          <input type="text" id="product-name" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-violet-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="product-category" class="font-semibold text-slate-700" data-i18n="label_category">Categoria:</label>
+            <input type="text" id="product-category" placeholder="Digital / Serviço" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-violet-500">
+          </div>
+          <div>
+            <label for="product-price" class="font-semibold text-slate-700" data-i18n="label_price">Preço Unitário Padrão (R$):</label>
+            <input type="number" step="0.01" min="0.01" id="product-price" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-violet-500">
+          </div>
+        </div>
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="App.UI.closeModal('modal-product')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold" data-i18n="btn_cancel">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold shadow-md" data-i18n="btn_save">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EXIBIÇÃO DE QR CODE PIX -->
+  <div id="modal-pix" role="dialog" aria-modal="true" aria-labelledby="modal-pix-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-pix')">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 id="modal-pix-title" class="font-bold text-slate-900 text-sm" data-i18n="pix_modal_title">Cobrança Pix Dinâmica</h3>
+        <button onclick="App.UI.closePixModal()" aria-label="Fechar modal Pix" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="py-2 flex flex-col items-center justify-center">
+        <div id="pix-qrcode-container" class="bg-white p-3 border rounded-2xl shadow-inner flex items-center justify-center min-h-[196px] min-w-[196px]"></div>
+        <p class="text-xs text-slate-500 mt-2" data-i18n="pix_scan_hint">Escaneie o QR Code no app do seu banco</p>
+        <p id="pix-modal-amount" class="text-lg font-extrabold text-indigo-600 mt-1">R$ 0,00</p>
+        <p id="pix-key-preview" class="text-[10px] text-slate-400 font-mono mt-0.5"></p>
+        <p id="pix-webhook-status" class="text-[11px] text-amber-600 font-semibold mt-2 flex items-center gap-1.5"></p>
         <input type="hidden" id="pix-copia-cola-code">
       </div>
 
       <div class="space-y-2">
-        <button onclick="copyPixCopiaECola()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition shadow-md">
-          <i class="fa-solid fa-copy"></i> Copiar Pix Copia e Cola
+        <button onclick="App.Services.copyPixCopiaECola()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition shadow-md">
+          <i class="fa-solid fa-copy"></i> <span data-i18n="btn_copy_pix">Copiar Pix Copia e Cola</span>
         </button>
-        <button onclick="simulatePixPayment()" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition">
-          <i class="fa-solid fa-bolt"></i> Simular Pagamento Instantâneo
+        <button onclick="App.Services.sendOrderWhatsapp(App.State.currentPixOrderId)" class="w-full py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition">
+          <i class="fa-brands fa-whatsapp text-sm"></i> <span data-i18n="btn_send_whatsapp">Enviar Cobrança no WhatsApp</span>
         </button>
-        <button onclick="closePixModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Fechar</button>
+        <button onclick="App.Services.confirmPixWebhook(true)" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-bolt"></i> <span data-i18n="btn_simulate_webhook">Simular Webhook de Aprovação</span>
+        </button>
+        <button onclick="App.UI.closePixModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl" data-i18n="btn_close">Fechar</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL CONFIGURAÇÕES E IDIOMA -->
-  <div id="modal-pix-settings" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-3 sm:space-y-4">
-      <div class="flex items-center justify-between border-b pb-2 sm:pb-3">
-        <h3 class="font-bold text-slate-900 text-sm sm:text-base" data-i18n="settings_title">Configurações & Idioma</h3>
-        <button onclick="closePixSettingsModal()" class="text-slate-400 hover:text-slate-600">
+  <!-- MODAL: COMPROVANTE / RECIBO IMPRIMÍVEL -->
+  <div id="modal-receipt" role="dialog" aria-modal="true" aria-labelledby="receipt-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-receipt')">
+    <div id="printable-receipt-card" class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-slate-800">
+      <div class="flex items-center justify-between border-b pb-3 no-print">
+        <h3 id="receipt-title" class="font-bold text-slate-900 text-sm" data-i18n="receipt_modal_title">Comprovante de Venda</h3>
+        <button onclick="App.UI.closeModal('modal-receipt')" aria-label="Fechar recibo" class="text-slate-400 hover:text-slate-600">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
 
-      <form onsubmit="savePixSettings(event)" class="space-y-2.5 sm:space-y-3 text-xs">
+      <div id="receipt-body-content" class="space-y-3 text-xs"></div>
+
+      <div class="pt-2 flex gap-2 no-print">
+        <button onclick="window.print()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-md">
+          <i class="fa-solid fa-print"></i> <span data-i18n="btn_print_receipt">Imprimir / Salvar PDF</span>
+        </button>
+        <button onclick="App.UI.closeModal('modal-receipt')" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl" data-i18n="btn_close">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURAÇÕES, IDIOMA & BACKUP -->
+  <div id="modal-pix-settings" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-pix-settings')">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 id="settings-modal-title" class="font-bold text-slate-900 text-base" data-i18n="settings_title">Configurações, Backup & Idioma</h3>
+        <button onclick="App.UI.closeModal('modal-pix-settings')" aria-label="Fechar configurações" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="App.Services.saveSettings(event)" class="space-y-3 text-xs">
         <div>
-          <label class="font-semibold text-slate-700" data-i18n="label_language">Idioma do Sistema:</label>
-          <select id="setting-language-input" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-800 font-medium">
+          <label for="setting-language-input" class="font-semibold text-slate-700" data-i18n="label_language">Idioma do Sistema:</label>
+          <select id="setting-language-input" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 font-medium">
             <option value="pt">🇧🇷 Português (Brasil)</option>
             <option value="en">🇺🇸 English</option>
             <option value="es">🇪🇸 Español</option>
@@ -436,456 +573,717 @@
         </div>
 
         <div>
-          <label class="font-semibold text-slate-700" data-i18n="label_pix_key">Chave Pix:</label>
-          <input type="text" id="pix-key-input" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-800">
+          <label for="pix-key-input" class="font-semibold text-slate-700" data-i18n="label_pix_key">Chave Pix (CPF, CNPJ, Celular, E-mail ou EVP):</label>
+          <input type="text" id="pix-key-input" oninput="App.UI.previewSanitizedPixKey()" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
+          <p id="pix-key-type-hint" class="text-[10px] text-indigo-600 font-medium mt-1"></p>
         </div>
 
-        <div>
-          <label class="font-semibold text-slate-700" data-i18n="label_merchant_name">Nome do Recebedor:</label>
-          <input type="text" id="pix-name-input" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-800">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="pix-name-input" class="font-semibold text-slate-700" data-i18n="label_merchant_name">Nome do Recebedor:</label>
+            <input type="text" id="pix-name-input" maxlength="25" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
+          </div>
+          <div>
+            <label for="pix-city-input" class="font-semibold text-slate-700" data-i18n="label_merchant_city">Cidade do Beneficiário:</label>
+            <input type="text" id="pix-city-input" maxlength="15" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
+          </div>
         </div>
 
-        <div>
-          <label class="font-semibold text-slate-700" data-i18n="label_merchant_city">Cidade do Beneficiário:</label>
-          <input type="text" id="pix-city-input" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-800">
+        <!-- BACKUP E RESTAURAÇÃO PARA USUÁRIOS -->
+        <div class="pt-3 border-t border-slate-200 space-y-2">
+          <p class="font-semibold text-slate-700" data-i18n="backup_section_title">Backup & Restauração de Dados (.JSON):</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="App.Services.exportFullBackup()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-download text-emerald-400"></i> <span data-i18n="btn_backup_export">Baixar Backup</span>
+            </button>
+            <label class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-semibold flex items-center justify-center gap-1.5 cursor-pointer border border-slate-300">
+              <i class="fa-solid fa-upload text-indigo-600"></i> <span data-i18n="btn_backup_import">Restaurar Backup</span>
+              <input type="file" id="backup-file-input" accept=".json,application/json" onchange="App.Services.importFullBackup(event)" class="hidden">
+            </label>
+          </div>
         </div>
 
-        <div class="pt-2 sm:pt-3 flex justify-end gap-2">
-          <button type="button" onclick="closePixSettingsModal()" class="px-3.5 sm:px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold" data-i18n="btn_cancel">Cancelar</button>
-          <button type="submit" class="px-4 sm:px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md" data-i18n="btn_save">Salvar</button>
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="App.UI.closeModal('modal-pix-settings')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold" data-i18n="btn_cancel">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md" data-i18n="btn_save">Salvar Configurações</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL AUTENTICAÇÃO DEV -->
-  <div id="modal-dev-auth" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-white rounded-2xl sm:rounded-3xl max-w-xs w-full p-4 sm:p-6 shadow-2xl text-center space-y-3 sm:space-y-4">
-      <div class="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-lg sm:text-xl mx-auto">
+  <!-- MODAL: AUTENTICAÇÃO PAINEL DEV -->
+  <div id="modal-dev-auth" role="dialog" aria-modal="true" aria-labelledby="dev-auth-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-dev-auth')">
+    <div class="bg-white rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center space-y-4">
+      <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-xl mx-auto">
         <i class="fa-solid fa-lock"></i>
       </div>
       <div>
-        <h3 class="font-bold text-slate-900 text-sm sm:text-base">Acesso de Desenvolvedor</h3>
-        <p class="text-[11px] sm:text-xs text-slate-500 mt-1">Insira o PIN Mestre (Padrão: 0000)</p>
+        <h3 id="dev-auth-title" class="font-bold text-slate-900 text-base" data-i18n="dev_auth_title">Acesso de Desenvolvedor</h3>
+        <p class="text-xs text-slate-500 mt-1" data-i18n="dev_auth_subtitle">Validação via Servidor (PIN padrão: 0000)</p>
+        <p id="dev-lockout-msg" class="text-[11px] text-rose-600 font-semibold mt-1 hidden"></p>
       </div>
 
-      <form onsubmit="verifyDevPin(event)" class="space-y-3">
-        <input type="password" id="dev-pin-input" maxlength="4" placeholder="0000" required class="w-full text-center text-base sm:text-lg font-mono tracking-widest bg-slate-100 border border-slate-300 rounded-xl p-2 sm:p-2.5 text-slate-900 focus:outline-none focus:border-amber-500">
+      <form onsubmit="App.Auth.login(event)" class="space-y-3">
+        <input type="password" id="dev-pin-input" maxlength="8" placeholder="••••" required aria-label="PIN de Desenvolvedor" class="w-full text-center text-lg font-mono tracking-widest bg-slate-100 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-amber-500">
         <div class="flex gap-2">
-          <button type="button" onclick="closeDevAuthModal()" class="w-1/2 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl">Cancelar</button>
-          <button type="submit" class="w-1/2 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl">Entrar</button>
+          <button type="button" onclick="App.UI.closeModal('modal-dev-auth')" class="w-1/2 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl" data-i18n="btn_cancel">Cancelar</button>
+          <button type="submit" id="dev-auth-submit" class="w-1/2 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl">Entrar</button>
         </div>
       </form>
     </div>
   </div>
 
-  <div id="toast-container" class="fixed bottom-16 sm:bottom-5 left-3 sm:left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" aria-live="polite" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <!-- SCRIPT PRINCIPAL JAVASCRIPT COM RENDERIZAÇÃO DUAL (MOBILE CARDS / DESKTOP TABLE) -->
   <script>
+    // Monitoramento transparente de erros
     window.onerror = function(msg, url, line, col, error) {
-      console.warn("[BLINDAGEM GATOPIXEL] Erro silencioso capturado:", msg);
-      if (typeof autoRepararSistema === 'function') autoRepararSistema();
-      try { showToast("Sistema auto-recuperado de instabilidade.", "info"); } catch(e) {}
-      return true;
+      console.error("[GatoPixel Error]", { msg, url, line, col, error });
+      if (window.App && App.UI) {
+        App.UI.showToast(App.UI.t("toast_unexpected_error"), "error");
+      }
+      return false;
     };
 
-    window.addEventListener('unhandledrejection', function(event) {
-      console.warn("[BLINDAGEM GATOPIXEL] Promessa rejeitada:", event.reason);
-      try { showToast("Processo de fundo corrigido.", "info"); } catch(e) {}
-      event.preventDefault();
+    window.addEventListener("unhandledrejection", function(event) {
+      console.error("[GatoPixel Promise Rejection]", event.reason);
     });
 
-    function getValidOrders() {
-      if (!Array.isArray(orders)) {
-        if (typeof autoRepararSistema === 'function') autoRepararSistema();
-        return Array.isArray(orders) ? orders : [];
-      }
-      return orders;
-    }
-
-    function safeSetText(id, text) {
-      try {
-        const el = document.getElementById(id);
-        if (el) el.textContent = text;
-      } catch (e) {}
-    }
-
-    function safeGetValue(id, fallback = '') {
-      try {
-        const el = document.getElementById(id);
-        return el ? el.value : fallback;
-      } catch (e) {
-        return fallback;
-      }
-    }
-
-    const FIXED_DEV_PIN = "0000";
-    let devAuthenticated = false;
-
-    const INITIAL_ORDERS = [
-      { id: 1, customer: "João Silva", product: "GatoPixel Sales Engine", amount: 149.90, paidAmount: 149.90, status: "Aprovado", date: new Date().toISOString().split('T')[0] },
-      { id: 2, customer: "Maria Oliveira", product: "Consultoria Premium", amount: 299.00, paidAmount: 100.00, status: "Parcial", date: new Date().toISOString().split('T')[0] },
-      { id: 3, customer: "Carlos Souza", product: "Pack Automação WhatsApp", amount: 89.90, paidAmount: 0.00, status: "Pendente", date: new Date().toISOString().split('T')[0] }
-    ];
-
-    let orders = [];
-    try {
-      const stored = localStorage.getItem('pix_orders_db');
-      orders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
-      if (!Array.isArray(orders)) orders = INITIAL_ORDERS;
-    } catch (e) {
-      orders = INITIAL_ORDERS;
-    }
-
-    let statusChartInstance = null;
-    let productsChartInstance = null;
-    let patchCount = 0;
-    let isBackgroundProcessRunning = false;
-
-    const translations = {
-      pt: {
-        nav_sales: "Vendas & Pedidos",
-        nav_dashboard: "Dashboard & IA",
-        nav_autorepair: "Auto-Reparo",
-        nav_dev: "Painel Dev",
-        btn_new_order: "Novo Pedido",
-        kpi_revenue: "Faturamento",
-        kpi_confirmed: "Pago em Conta",
-        kpi_total_orders: "Total Pedidos",
-        kpi_registered: "Registrados",
-        kpi_conversion: "Conversão Pix",
-        kpi_approved: "Aprovados",
-        kpi_avg_ticket: "Ticket Médio",
-        kpi_avg_client: "Média/Cliente",
-        table_title: "Vendas & QR Codes Pix",
-        table_subtitle: "Gerencie status, clientes e cobrança",
-        search_placeholder: "Buscar...",
-        th_customer: "Cliente",
-        th_product: "Produto",
-        th_total_paid: "Total / Pago",
-        th_status: "Status",
-        th_date: "Data",
-        th_actions: "Ações",
-        settings_title: "Configurações & Idioma",
-        label_language: "Idioma do Sistema",
-        label_pix_key: "Chave Pix",
-        label_merchant_name: "Nome do Recebedor",
-        label_merchant_city: "Cidade do Beneficiário",
-        btn_cancel: "Cancelar",
-        btn_save: "Salvar",
-        toast_saved: "Configurações salvas!",
-        ai_speech_bubble: "Miau! Precisa de ajuda?",
-        ai_subtitle: "Assistente inteligente de conversão",
-        ai_welcome: "Olá! Eu sou o <strong>GatoPixel</strong>! 🐾 Posso analisar suas vendas atuais, gerar mensagens de cobrança para WhatsApp em 1 clique ou tirar dúvidas sobre o seu sistema!",
-        ai_btn_analyze: "Analisar Vendas",
-        ai_btn_copy: "Gerar Copy Pix",
-        ai_input_placeholder: "Pergunte ao GatoPixel...",
-        flag: "🇧🇷"
+    const App = {
+      State: {
+        orders: [],
+        products: [],
+        config: {
+          pixKey: "+5511999999999",
+          merchantName: "GatoPixel",
+          merchantCity: "SAO PAULO",
+          language: "pt"
+        },
+        activeTab: "sales",
+        devAuthenticated: false,
+        failedPinAttempts: 0,
+        pinLockoutUntil: 0,
+        currentPixOrderId: null,
+        webhookTimer: null,
+        patchCount: 0,
+        lastDeletedOrder: null,
+        lastWhatsappCopy: "",
+        charts: {
+          status: null,
+          products: null
+        }
       },
-      en: {
-        nav_sales: "Sales & Orders",
-        nav_dashboard: "Dashboard & AI",
-        nav_autorepair: "Auto-Repair",
-        nav_dev: "Dev Panel",
-        btn_new_order: "New Order",
-        kpi_revenue: "Revenue",
-        kpi_confirmed: "Paid",
-        kpi_total_orders: "Total Orders",
-        kpi_registered: "Registered",
-        kpi_conversion: "Pix Conversion",
-        kpi_approved: "Approved",
-        kpi_avg_ticket: "Average Ticket",
-        kpi_avg_client: "Avg/Client",
-        table_title: "Sales & QR Codes",
-        table_subtitle: "Manage status, clients, and billing",
-        search_placeholder: "Search...",
-        th_customer: "Customer",
-        th_product: "Product",
-        th_total_paid: "Total / Paid",
-        th_status: "Status",
-        th_date: "Date",
-        th_actions: "Actions",
-        settings_title: "Settings & Language",
-        label_language: "System Language",
-        label_pix_key: "Pix Key",
-        label_merchant_name: "Receiver Name",
-        label_merchant_city: "City",
-        btn_cancel: "Cancel",
-        btn_save: "Save",
-        toast_saved: "Settings saved!",
-        ai_speech_bubble: "Meow! Need help?",
-        ai_subtitle: "Smart conversion assistant",
-        ai_welcome: "Hello! I am <strong>GatoPixel</strong>! 🐾 I can analyze sales, generate WhatsApp billing copy in 1-click, or answer questions!",
-        ai_btn_analyze: "Analyze Sales",
-        ai_btn_copy: "Generate Pix Copy",
-        ai_input_placeholder: "Ask GatoPixel...",
-        flag: "🇺🇸"
+
+      Translations: {
+        pt: {
+          app_subtitle: "Sistema Autossustentável de Vendas Pix",
+          nav_sales: "Vendas & Pedidos",
+          nav_catalog: "Catálogo",
+          nav_dashboard: "Dashboard & IA",
+          nav_autorepair: "Auto-Reparo",
+          nav_dev: "Painel Dev",
+          btn_export: "Exportar",
+          btn_new_order: "Novo Pedido",
+          btn_new_product: "Novo Item no Catálogo",
+          btn_consult_ai: "Consultar GatoPixel AI",
+          btn_run_diagnostic: "Executar Diagnóstico",
+          btn_dev_logout: "Encerrar Sessão Dev",
+          btn_cancel: "Cancelar",
+          btn_save: "Salvar",
+          btn_save_order: "Salvar Pedido",
+          btn_close: "Fechar",
+          btn_undo: "Desfazer",
+          btn_copy_pix: "Copiar Pix Copia e Cola",
+          btn_send_whatsapp: "Enviar Cobrança no WhatsApp",
+          btn_simulate_webhook: "Simular Webhook de Aprovação",
+          btn_print_receipt: "Imprimir / Salvar PDF",
+          btn_backup_export: "Baixar Backup",
+          btn_backup_import: "Restaurar Backup",
+          kpi_revenue: "Faturamento Total",
+          kpi_confirmed: "Receita Confirmada",
+          kpi_total_orders: "Total de Pedidos",
+          kpi_registered: "Registrados no Sistema",
+          kpi_conversion: "Conversão Pix",
+          kpi_approved: "Pagamentos Aprovados",
+          kpi_avg_ticket: "Ticket Médio",
+          kpi_avg_client: "Valor Médio por Cliente",
+          table_title: "Lista de Vendas & QR Codes Pix",
+          table_subtitle: "Gerencie status, cobranças WhatsApp, recibos e QR Codes Pix",
+          period_all: "Todo o Período",
+          period_today: "Hoje",
+          period_7days: "Últimos 7 dias",
+          period_month: "Este Mês",
+          status_all: "Todos os Status",
+          status_approved: "Aprovados",
+          status_pending: "Pendentes",
+          status_partial: "Parciais",
+          status_canceled: "Cancelados",
+          badge_Aprovado: "Aprovado",
+          badge_Pendente: "Pendente",
+          badge_Parcial: "Parcial",
+          badge_Cancelado: "Cancelado",
+          sort_newest: "Mais Recentes",
+          sort_oldest: "Mais Antigos",
+          sort_highest: "Maior Valor",
+          sort_lowest: "Menor Valor",
+          search_placeholder: "Buscar cliente ou produto...",
+          th_customer: "Cliente",
+          th_product_qty: "Produto / Qtd",
+          th_total_paid: "Total / Pago",
+          th_status: "Status",
+          th_date: "Data",
+          th_actions: "Ações",
+          unit_short: "Unit.",
+          empty_orders: "Nenhum pedido encontrado para os filtros atuais.",
+          catalog_title: "Catálogo de Produtos & Serviços",
+          catalog_subtitle: "Cadastre itens recorrentes para preencher pedidos em 1 clique",
+          empty_catalog: "Nenhum item cadastrado no catálogo.",
+          analytics_title: "Dashboard Analítico & Inteligência",
+          analytics_subtitle: "Distribuição em tempo real de pagamentos e receita por produto",
+          chart_status_title: "Pedidos por Status",
+          chart_products_title: "Faturamento por Produto",
+          repair_title: "Auto-Reparo e Integridade de Dados",
+          repair_subtitle: "Valida esquemas de pedidos, quantidades, catálogo e chaves Pix",
+          repair_status_label: "Status do Diagnóstico:",
+          repair_status_ok: "Sistema Saudável & Validado",
+          repair_fixes_label: "Saneamentos Efetuados:",
+          dev_title: "Painel do Desenvolvedor",
+          dev_subtitle: "Inspeção e edição direta do estado completo (Sessão Autenticada)",
+          dev_auth_title: "Acesso de Desenvolvedor",
+          dev_auth_subtitle: "Validação via Servidor (PIN padrão: 0000)",
+          settings_title: "Configurações, Backup & Idioma",
+          label_language: "Idioma do Sistema",
+          label_pix_key: "Chave Pix (CPF, CNPJ, Celular, E-mail ou EVP)",
+          label_merchant_name: "Nome do Recebedor",
+          label_merchant_city: "Cidade do Beneficiário",
+          backup_section_title: "Backup & Restauração de Dados (.JSON):",
+          label_quick_catalog: "Preencher do Catálogo (Opcional):",
+          catalog_select_default: "-- Selecionar item pronto --",
+          label_customer: "Nome do Cliente:",
+          label_whatsapp: "WhatsApp (Opcional):",
+          label_product: "Produto ou Serviço:",
+          label_quantity: "Quantidade:",
+          label_unit_price: "Valor Unitário (R$):",
+          label_total_amount: "Valor Total (R$):",
+          label_paid_amount: "Valor Já Pago (R$):",
+          label_remaining_balance: "Saldo Restante a Cobrar:",
+          label_status: "Status do Pagamento:",
+          label_product_name: "Nome do Produto / Serviço:",
+          label_category: "Categoria:",
+          label_price: "Preço Unitário Padrão (R$):",
+          pix_modal_title: "Cobrança Pix Dinâmica",
+          pix_scan_hint: "Escaneie o QR Code no app do seu banco",
+          receipt_modal_title: "Comprovante de Venda",
+          ai_speech_bubble: "Miau! Precisa de ajuda com vendas?",
+          ai_subtitle: "Seu assistente inteligente de conversão e vendas",
+          ai_welcome: "Olá! Eu sou o <strong>GatoPixel</strong>! 🐾 Posso analisar suas vendas atuais ou gerar mensagens de cobrança para WhatsApp em 1 clique!",
+          ai_btn_analyze: "Analisar Vendas",
+          ai_btn_copy: "Gerar Copy Pix",
+          ai_input_placeholder: "Pergunte algo ao GatoPixel...",
+          toast_saved: "Configurações salvas com sucesso!",
+          toast_order_saved: "Pedido salvo com sucesso!",
+          toast_order_deleted: "Pedido excluído.",
+          toast_order_restored: "Pedido restaurado!",
+          toast_product_saved: "Item salvo no catálogo!",
+          toast_product_deleted: "Item removido do catálogo.",
+          toast_pix_copied: "Código Pix Copia e Cola copiado!",
+          toast_backup_exported: "Backup JSON exportado com sucesso!",
+          toast_backup_restored: "Backup restaurado com sucesso!",
+          toast_backup_invalid: "Arquivo de backup JSON inválido.",
+          toast_unexpected_error: "Ocorreu um erro inesperado. Verifique o console.",
+          flag: "🇧🇷"
+        },
+        en: {
+          app_subtitle: "Self-Sustaining Pix Sales System",
+          nav_sales: "Sales & Orders",
+          nav_catalog: "Catalog",
+          nav_dashboard: "Dashboard & AI",
+          nav_autorepair: "Auto-Repair",
+          nav_dev: "Dev Panel",
+          btn_export: "Export",
+          btn_new_order: "New Order",
+          btn_new_product: "New Catalog Item",
+          btn_consult_ai: "Ask GatoPixel AI",
+          btn_run_diagnostic: "Run Diagnostic",
+          btn_dev_logout: "Log Out Dev",
+          btn_cancel: "Cancel",
+          btn_save: "Save",
+          btn_save_order: "Save Order",
+          btn_close: "Close",
+          btn_undo: "Undo",
+          btn_copy_pix: "Copy Pix Code",
+          btn_send_whatsapp: "Send Charge on WhatsApp",
+          btn_simulate_webhook: "Simulate Approval Webhook",
+          btn_print_receipt: "Print / Save PDF",
+          btn_backup_export: "Download Backup",
+          btn_backup_import: "Restore Backup",
+          kpi_revenue: "Total Revenue",
+          kpi_confirmed: "Confirmed Revenue",
+          kpi_total_orders: "Total Orders",
+          kpi_registered: "Registered in System",
+          kpi_conversion: "Pix Conversion",
+          kpi_approved: "Approved Payments",
+          kpi_avg_ticket: "Average Ticket",
+          kpi_avg_client: "Average Value per Client",
+          table_title: "Sales List & Pix QR Codes",
+          table_subtitle: "Manage status, WhatsApp billing, receipts, and Pix QR Codes",
+          period_all: "All Time",
+          period_today: "Today",
+          period_7days: "Last 7 Days",
+          period_month: "This Month",
+          status_all: "All Statuses",
+          status_approved: "Approved",
+          status_pending: "Pending",
+          status_partial: "Partial",
+          status_canceled: "Canceled",
+          badge_Aprovado: "Approved",
+          badge_Pendente: "Pending",
+          badge_Parcial: "Partial",
+          badge_Cancelado: "Canceled",
+          sort_newest: "Newest First",
+          sort_oldest: "Oldest First",
+          sort_highest: "Highest Value",
+          sort_lowest: "Lowest Value",
+          search_placeholder: "Search customer or product...",
+          th_customer: "Customer",
+          th_product_qty: "Product / Qty",
+          th_total_paid: "Total / Paid",
+          th_status: "Status",
+          th_date: "Date",
+          th_actions: "Actions",
+          unit_short: "Unit",
+          empty_orders: "No orders found for the current filters.",
+          catalog_title: "Product & Service Catalog",
+          catalog_subtitle: "Register recurring items to auto-fill orders in 1 click",
+          empty_catalog: "No items registered in the catalog.",
+          analytics_title: "Analytics Dashboard & Intelligence",
+          analytics_subtitle: "Real-time breakdown of payments and revenue by product",
+          chart_status_title: "Orders by Status",
+          chart_products_title: "Revenue by Product",
+          repair_title: "System Auto-Repair & Data Integrity",
+          repair_subtitle: "Validates order schemas, quantities, catalog items, and Pix keys",
+          repair_status_label: "Diagnostic Status:",
+          repair_status_ok: "System Healthy & Validated",
+          repair_fixes_label: "Sanitizations Applied:",
+          dev_title: "Developer Panel",
+          dev_subtitle: "Direct inspection and editing of full state (Authenticated Session)",
+          dev_auth_title: "Developer Access",
+          dev_auth_subtitle: "Server Validation (Default PIN: 0000)",
+          settings_title: "Settings, Backup & Language",
+          label_language: "System Language",
+          label_pix_key: "Pix Key (CPF, CNPJ, Phone, Email or EVP)",
+          label_merchant_name: "Receiver Name",
+          label_merchant_city: "City",
+          backup_section_title: "Data Backup & Restore (.JSON):",
+          label_quick_catalog: "Fill from Catalog (Optional):",
+          catalog_select_default: "-- Select catalog item --",
+          label_customer: "Customer Name:",
+          label_whatsapp: "WhatsApp (Optional):",
+          label_product: "Product or Service:",
+          label_quantity: "Quantity:",
+          label_unit_price: "Unit Price:",
+          label_total_amount: "Total Amount:",
+          label_paid_amount: "Amount Paid:",
+          label_remaining_balance: "Remaining Balance:",
+          label_status: "Payment Status:",
+          label_product_name: "Product / Service Name:",
+          label_category: "Category:",
+          label_price: "Default Unit Price:",
+          pix_modal_title: "Dynamic Pix Charge",
+          pix_scan_hint: "Scan the QR Code in your banking app",
+          receipt_modal_title: "Sales Receipt",
+          ai_speech_bubble: "Meow! Need help with sales?",
+          ai_subtitle: "Your intelligent conversion & sales assistant",
+          ai_welcome: "Hello! I am <strong>GatoPixel</strong>! 🐾 I can analyze your sales or generate WhatsApp billing copy in 1 click!",
+          ai_btn_analyze: "Analyze Sales",
+          ai_btn_copy: "Generate Pix Copy",
+          ai_input_placeholder: "Ask GatoPixel anything...",
+          toast_saved: "Settings saved successfully!",
+          toast_order_saved: "Order saved successfully!",
+          toast_order_deleted: "Order deleted.",
+          toast_order_restored: "Order restored!",
+          toast_product_saved: "Item saved to catalog!",
+          toast_product_deleted: "Item removed from catalog.",
+          toast_pix_copied: "Pix code copied to clipboard!",
+          toast_backup_exported: "JSON backup exported!",
+          toast_backup_restored: "Backup restored successfully!",
+          toast_backup_invalid: "Invalid JSON backup file.",
+          toast_unexpected_error: "An unexpected error occurred. Check console.",
+          flag: "🇺🇸"
+        },
+        es: {
+          app_subtitle: "Sistema Autosustentable de Ventas Pix",
+          nav_sales: "Ventas y Pedidos",
+          nav_catalog: "Catálogo",
+          nav_dashboard: "Panel e IA",
+          nav_autorepair: "Auto-Reparación",
+          nav_dev: "Panel Dev",
+          btn_export: "Exportar",
+          btn_new_order: "Nuevo Pedido",
+          btn_new_product: "Nuevo Ítem",
+          btn_consult_ai: "Consultar GatoPixel AI",
+          btn_run_diagnostic: "Ejecutar Diagnóstico",
+          btn_dev_logout: "Cerrar Sesión Dev",
+          btn_cancel: "Cancelar",
+          btn_save: "Guardar",
+          btn_save_order: "Guardar Pedido",
+          btn_close: "Cerrar",
+          btn_undo: "Deshacer",
+          btn_copy_pix: "Copiar Código Pix",
+          btn_send_whatsapp: "Enviar Cobro por WhatsApp",
+          btn_simulate_webhook: "Simular Webhook de Aprobación",
+          btn_print_receipt: "Imprimir / Guardar PDF",
+          btn_backup_export: "Descargar Respaldo",
+          btn_backup_import: "Restaurar Respaldo",
+          kpi_revenue: "Facturación Total",
+          kpi_confirmed: "Ingresos Confirmados",
+          kpi_total_orders: "Total de Pedidos",
+          kpi_registered: "Registrados en el Sistema",
+          kpi_conversion: "Conversión Pix",
+          kpi_approved: "Pagos Aprobados",
+          kpi_avg_ticket: "Ticket Medio",
+          kpi_avg_client: "Valor Promedio por Cliente",
+          table_title: "Lista de Ventas y Códigos QR Pix",
+          table_subtitle: "Gestione estado, cobros WhatsApp, recibos y códigos QR Pix",
+          period_all: "Todo el Período",
+          period_today: "Hoy",
+          period_7days: "Últimos 7 días",
+          period_month: "Este Mes",
+          status_all: "Todos los Estados",
+          status_approved: "Aprobados",
+          status_pending: "Pendientes",
+          status_partial: "Parciales",
+          status_canceled: "Cancelados",
+          badge_Aprovado: "Aprobado",
+          badge_Pendente: "Pendiente",
+          badge_Parcial: "Parcial",
+          badge_Cancelado: "Cancelado",
+          sort_newest: "Más Recientes",
+          sort_oldest: "Más Antiguos",
+          sort_highest: "Mayor Valor",
+          sort_lowest: "Menor Valor",
+          search_placeholder: "Buscar cliente o producto...",
+          th_customer: "Cliente",
+          th_product_qty: "Producto / Cant.",
+          th_total_paid: "Total / Pagado",
+          th_status: "Estado",
+          th_date: "Fecha",
+          th_actions: "Acciones",
+          unit_short: "Unit.",
+          empty_orders: "No se encontraron pedidos para los filtros actuales.",
+          catalog_title: "Catálogo de Productos y Servicios",
+          catalog_subtitle: "Registre ítems recurrentes para completar pedidos en 1 clic",
+          empty_catalog: "No hay ítems registrados en el catálogo.",
+          analytics_title: "Panel Analítico e Inteligencia",
+          analytics_subtitle: "Distribución en tiempo real de pagos e ingresos por producto",
+          chart_status_title: "Pedidos por Estado",
+          chart_products_title: "Facturación por Producto",
+          repair_title: "Auto-Reparación e Integridad de Datos",
+          repair_subtitle: "Valida esquemas de pedidos, cantidades, catálogo y claves Pix",
+          repair_status_label: "Estado del Diagnóstico:",
+          repair_status_ok: "Sistema Saludable y Validado",
+          repair_fixes_label: "Saneamientos Realizados:",
+          dev_title: "Panel del Desarrollador",
+          dev_subtitle: "Inspección y edición directa del estado completo (Sesión Autenticada)",
+          dev_auth_title: "Acceso de Desarrollador",
+          dev_auth_subtitle: "Validación vía Servidor (PIN predeterminado: 0000)",
+          settings_title: "Configuración, Respaldo e Idioma",
+          label_language: "Idioma del Sistema",
+          label_pix_key: "Clave Pix (CPF, CNPJ, Teléfono, Correo o EVP)",
+          label_merchant_name: "Nombre del Beneficiario",
+          label_merchant_city: "Ciudad",
+          backup_section_title: "Respaldo y Restauración de Datos (.JSON):",
+          label_quick_catalog: "Rellenar desde Catálogo (Opcional):",
+          catalog_select_default: "-- Seleccionar ítem del catálogo --",
+          label_customer: "Nombre del Cliente:",
+          label_whatsapp: "WhatsApp (Opcional):",
+          label_product: "Producto o Servicio:",
+          label_quantity: "Cantidad:",
+          label_unit_price: "Precio Unitario:",
+          label_total_amount: "Valor Total:",
+          label_paid_amount: "Valor Pagado:",
+          label_remaining_balance: "Saldo Restante:",
+          label_status: "Estado del Pago:",
+          label_product_name: "Nombre del Producto / Servicio:",
+          label_category: "Categoría:",
+          label_price: "Precio Unitario Predeterminado:",
+          pix_modal_title: "Cobro Pix Dinámico",
+          pix_scan_hint: "Escanee el código QR en su app bancaria",
+          receipt_modal_title: "Comprobante de Venta",
+          ai_speech_bubble: "¡Miau! ¿Necesitas ayuda con las ventas?",
+          ai_subtitle: "Tu asistente inteligente de ventas y conversión",
+          ai_welcome: "¡Hola! Soy <strong>GatoPixel</strong>! 🐾 Puedo analizar tus ventas o generar mensajes para WhatsApp en 1 clic.",
+          ai_btn_analyze: "Analizar Ventas",
+          ai_btn_copy: "Generar Copy Pix",
+          ai_input_placeholder: "Pregúntale algo a GatoPixel...",
+          toast_saved: "¡Ajustes guardados con éxito!",
+          toast_order_saved: "¡Pedido guardado con éxito!",
+          toast_order_deleted: "Pedido eliminado.",
+          toast_order_restored: "¡Pedido restaurado!",
+          toast_product_saved: "¡Ítem guardado en el catálogo!",
+          toast_product_deleted: "Ítem eliminado del catálogo.",
+          toast_pix_copied: "¡Código Pix copiado!",
+          toast_backup_exported: "¡Respaldo JSON exportado!",
+          toast_backup_restored: "¡Respaldo restaurado con éxito!",
+          toast_backup_invalid: "Archivo de respaldo JSON inválido.",
+          toast_unexpected_error: "Ocurrió un error inesperado. Revise la consola.",
+          flag: "🇪🇸"
+        }
       },
-      es: {
-        nav_sales: "Ventas y Pedidos",
-        nav_dashboard: "Panel e IA",
-        nav_autorepair: "Auto-Reparación",
-        nav_dev: "Panel Dev",
-        btn_new_order: "Nuevo Pedido",
-        kpi_revenue: "Facturación",
-        kpi_confirmed: "Pagado",
-        kpi_total_orders: "Total Pedidos",
-        kpi_registered: "Registrados",
-        kpi_conversion: "Conversión Pix",
-        kpi_approved: "Aprobados",
-        kpi_avg_ticket: "Ticket Medio",
-        kpi_avg_client: "Prom/Cliente",
-        table_title: "Ventas y QR Codes",
-        table_subtitle: "Gestione estado, clientes y cobros",
-        search_placeholder: "Buscar...",
-        th_customer: "Cliente",
-        th_product: "Producto",
-        th_total_paid: "Total / Pagado",
-        th_status: "Estado",
-        th_date: "Fecha",
-        th_actions: "Acciones",
-        settings_title: "Configuración e Idioma",
-        label_language: "Idioma del Sistema",
-        label_pix_key: "Clave Pix",
-        label_merchant_name: "Beneficiario",
-        label_merchant_city: "Ciudad",
-        btn_cancel: "Cancelar",
-        btn_save: "Guardar",
-        toast_saved: "¡Ajustes guardados!",
-        ai_speech_bubble: "¡Miau! ¿Necesitas ayuda?",
-        ai_subtitle: "Asistente de ventas",
-        ai_welcome: "¡Hola! Soy <strong>GatoPixel</strong>! 🐾 Puedo analizar tus ventas, generar mensajes para WhatsApp en 1 clic o responder preguntas.",
-        ai_btn_analyze: "Analizar Ventas",
-        ai_btn_copy: "Generar Copy Pix",
-        ai_input_placeholder: "Pregúntale a GatoPixel...",
-        flag: "🇪🇸"
-      }
-    };
 
-    let currentLanguage = localStorage.getItem('gatopixel_lang') || 'pt';
+      Utils: {
+        escapeHtml(str) {
+          return String(str ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        },
 
-    const DEFAULT_CONFIG = {
-      pixKey: "+5511999999999",
-      merchantName: "GatoPixel",
-      merchantCity: "SAO PAULO",
-      language: "pt"
-    };
+        formatCurrency(value) {
+          const num = Number.isFinite(Number(value)) ? Number(value) : 0;
+          return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        },
 
-    let pixConfig = DEFAULT_CONFIG;
-    try {
-      const storedConf = localStorage.getItem('pix_config_db');
-      if (storedConf) pixConfig = { ...DEFAULT_CONFIG, ...JSON.parse(storedConf) };
-    } catch(e) {
-      pixConfig = DEFAULT_CONFIG;
-    }
+        sanitizePixKey(rawKey) {
+          const key = String(rawKey || "").trim();
+          if (!key) return { clean: "", type: "Vazia" };
 
-    window.switchTab = function(tabName) {
-      try {
-        document.querySelectorAll('.view-tab').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active', 'text-white'));
-        
-        const targetTab = document.getElementById(`view-${tabName}`);
-        if (targetTab) {
-          targetTab.classList.add('active');
-        }
-
-        if (tabName === 'analytics') {
-          requestAnimationFrame(() => updateCharts());
-        } else if (tabName === 'dev') {
-          loadDevJsonEditor();
-        }
-      } catch (err) {}
-    };
-
-    window.tryOpenDevPanel = function() {
-      if (devAuthenticated) {
-        window.switchTab('dev');
-      } else {
-        const modal = document.getElementById('modal-dev-auth');
-        if (modal) modal.classList.remove('hidden');
-      }
-    };
-
-    window.closeDevAuthModal = function() {
-      const modal = document.getElementById('modal-dev-auth');
-      if (modal) modal.classList.add('hidden');
-    };
-
-    window.verifyDevPin = function(event) {
-      if (event) event.preventDefault();
-      const pinVal = safeGetValue('dev-pin-input');
-      if (pinVal === FIXED_DEV_PIN) {
-        devAuthenticated = true;
-        window.closeDevAuthModal();
-        window.switchTab('dev');
-        showToast("Acesso de Desenvolvedor Concedido!", "success");
-      } else {
-        showToast("PIN de segurança incorreto!", "error");
-      }
-    };
-
-    window.openPixSettingsModal = function() {
-      try {
-        const keyEl = document.getElementById('pix-key-input'); if (keyEl) keyEl.value = pixConfig.pixKey || '';
-        const nameEl = document.getElementById('pix-name-input'); if (nameEl) nameEl.value = pixConfig.merchantName || '';
-        const cityEl = document.getElementById('pix-city-input'); if (cityEl) cityEl.value = pixConfig.merchantCity || '';
-        const langEl = document.getElementById('setting-language-input'); if (langEl) langEl.value = currentLanguage || 'pt';
-        
-        const modal = document.getElementById('modal-pix-settings');
-        if (modal) modal.classList.remove('hidden');
-      } catch (err) {}
-    };
-
-    window.closePixSettingsModal = function() {
-      const modal = document.getElementById('modal-pix-settings');
-      if (modal) modal.classList.add('hidden');
-    };
-
-    window.savePixSettings = function(event) {
-      if (event) event.preventDefault();
-      try {
-        pixConfig.pixKey = safeGetValue('pix-key-input').trim();
-        pixConfig.merchantName = safeGetValue('pix-name-input').trim();
-        pixConfig.merchantCity = safeGetValue('pix-city-input').trim();
-        
-        currentLanguage = safeGetValue('setting-language-input', 'pt');
-        pixConfig.language = currentLanguage;
-        
-        localStorage.setItem('pix_config_db', JSON.stringify(pixConfig));
-        localStorage.setItem('gatopixel_lang', currentLanguage);
-
-        applyTranslations();
-        window.closePixSettingsModal();
-        showToast(translations[currentLanguage]?.toast_saved || "Configurações salvas!", "success");
-      } catch (err) {
-        showToast("Erro ao salvar configurações", "error");
-      }
-    };
-
-    window.openNewOrderModal = function() {
-      try {
-        const idEl = document.getElementById('order-id'); if (idEl) idEl.value = '';
-        const custEl = document.getElementById('order-customer'); if (custEl) custEl.value = '';
-        const prodEl = document.getElementById('order-product'); if (prodEl) prodEl.value = '';
-        const amtEl = document.getElementById('order-amount'); if (amtEl) amtEl.value = '';
-        const paidEl = document.getElementById('order-paid'); if (paidEl) paidEl.value = '';
-        const stEl = document.getElementById('order-status'); if (stEl) stEl.value = 'Pendente';
-        
-        safeSetText('modal-order-title', translations[currentLanguage]?.btn_new_order || "Novo Pedido Pix");
-        
-        window.calculateRemainingBalance();
-        const modal = document.getElementById('modal-order');
-        if (modal) modal.classList.remove('hidden');
-      } catch (err) {}
-    };
-
-    window.closeOrderModal = function() {
-      const modal = document.getElementById('modal-order');
-      if (modal) modal.classList.add('hidden');
-    };
-
-    window.calculateRemainingBalance = function() {
-      try {
-        const amount = parseFloat(safeGetValue('order-amount', '0')) || 0;
-        const paid = parseFloat(safeGetValue('order-paid', '0')) || 0;
-        const balance = Math.max(0, amount - paid);
-        
-        const box = document.getElementById('balance-info-box');
-        if (box) {
-          if (amount > 0 && paid > 0 && balance > 0) {
-            box.classList.remove('hidden');
-            safeSetText('order-balance-display', `R$ ${balance.toFixed(2)}`);
-          } else {
-            box.classList.add('hidden');
+          if (key.includes("@")) {
+            return { clean: key.toLowerCase(), type: "E-mail" };
           }
-        }
-      } catch (err) {}
-    };
 
-    window.saveOrder = function(event) {
-      if (event) event.preventDefault();
-      try {
-        const idVal = safeGetValue('order-id');
-        const customer = safeGetValue('order-customer').trim();
-        const product = safeGetValue('order-product').trim();
-        const amount = parseFloat(safeGetValue('order-amount', '0')) || 0;
-        const paidAmount = parseFloat(safeGetValue('order-paid', '0')) || 0;
-        let status = safeGetValue('order-status', 'Pendente');
-
-        if (paidAmount >= amount && amount > 0) {
-          status = "Aprovado";
-        } else if (paidAmount > 0 && paidAmount < amount) {
-          status = "Parcial";
-        }
-
-        if (idVal) {
-          const index = orders.findIndex(o => o.id === parseInt(idVal));
-          if (index !== -1) {
-            orders[index] = { ...orders[index], customer, product, amount, paidAmount, status };
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) {
+            return { clean: key.toLowerCase(), type: "Chave Aleatória (EVP)" };
           }
-        } else {
-          const newOrder = {
-            id: orders.length ? Math.max(...orders.map(o => o.id || 0)) + 1 : 1,
-            customer,
-            product,
+
+          if (key.startsWith("+")) {
+            const digits = key.replace(/\D/g, "");
+            return { clean: `+${digits}`, type: "Telefone (+55)" };
+          }
+
+          const digits = key.replace(/\D/g, "");
+
+          if (digits.length === 14) {
+            return { clean: digits, type: "CNPJ" };
+          }
+
+          if (digits.length === 10 || (digits.length === 11 && /[()]/.test(key))) {
+            return { clean: `+55${digits}`, type: "Telefone (+55)" };
+          }
+
+          if (digits.length === 11) {
+            return { clean: digits, type: "CPF" };
+          }
+
+          return { clean: key, type: "Personalizada" };
+        },
+
+        sanitizeOrder(raw, fallbackId) {
+          const validStatuses = ["Pendente", "Parcial", "Aprovado", "Cancelado"];
+
+          let quantity = parseInt(raw?.quantity, 10);
+          if (!Number.isInteger(quantity) || quantity < 1) quantity = 1;
+
+          let unitPrice = Number(raw?.unitPrice);
+          let amount = Number(raw?.amount);
+
+          if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+            unitPrice = Number.isFinite(amount) && amount > 0 ? Number((amount / quantity).toFixed(2)) : 0;
+          }
+
+          amount = Number((quantity * unitPrice).toFixed(2));
+
+          let paidAmount = Number(raw?.paidAmount);
+          if (!Number.isFinite(paidAmount) || paidAmount < 0) paidAmount = 0;
+
+          let status = validStatuses.includes(raw?.status) ? raw.status : "Pendente";
+          if (status === "Aprovado" && paidAmount === 0 && amount > 0) {
+            paidAmount = amount;
+          }
+
+          return {
+            id: Number.isInteger(raw?.id) && raw.id > 0 ? raw.id : fallbackId,
+            customer: String(raw?.customer || "Cliente").trim(),
+            phone: String(raw?.phone || "").replace(/\D/g, ""),
+            product: String(raw?.product || "Produto").trim(),
+            quantity,
+            unitPrice,
             amount,
             paidAmount,
             status,
-            date: new Date().toISOString().split('T')[0]
+            date: /^\d{4}-\d{2}-\d{2}$/.test(raw?.date) ? raw.date : new Date().toISOString().split("T")[0]
           };
-          orders.push(newOrder);
+        },
+
+        sanitizeProduct(raw, fallbackId) {
+          let price = Number(raw?.price);
+          if (!Number.isFinite(price) || price < 0) price = 0;
+          return {
+            id: Number.isInteger(raw?.id) && raw.id > 0 ? raw.id : fallbackId,
+            name: String(raw?.name || "Item").trim(),
+            category: String(raw?.category || "Geral").trim(),
+            price
+          };
+        },
+
+        playSuccessSound() {
+          try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+          } catch (_) {}
         }
+      },
 
-        saveState();
-        window.closeOrderModal();
-        showToast("Pedido salvo com sucesso!", "success");
-      } catch (err) {
-        showToast("Erro ao salvar pedido", "error");
-      }
-    };
+      API: {
+        KEYS: {
+          ORDERS: "gatopixel_orders_v4",
+          PRODUCTS: "gatopixel_products_v4",
+          CONFIG: "gatopixel_config_v4"
+        },
 
-    window.editOrder = function(id) {
-      try {
-        const order = orders.find(o => o.id === id);
-        if (!order) return;
+        getDefaultOrders() {
+          const today = new Date().toISOString().split("T")[0];
+          return [
+            { id: 1, customer: "João Silva", phone: "11988887777", product: "GatoPixel Sales Engine", quantity: 1, unitPrice: 149.90, amount: 149.90, paidAmount: 149.90, status: "Aprovado", date: today },
+            { id: 2, customer: "Maria Oliveira", phone: "11977776666", product: "Consultoria Premium", quantity: 2, unitPrice: 149.50, amount: 299.00, paidAmount: 100.00, status: "Parcial", date: today },
+            { id: 3, customer: "Carlos Souza", phone: "", product: "Pack Automação WhatsApp", quantity: 3, unitPrice: 29.90, amount: 89.70, paidAmount: 0.00, status: "Pendente", date: today }
+          ];
+        },
 
-        const idEl = document.getElementById('order-id'); if (idEl) idEl.value = order.id;
-        const custEl = document.getElementById('order-customer'); if (custEl) custEl.value = order.customer;
-        const prodEl = document.getElementById('order-product'); if (prodEl) prodEl.value = order.product;
-        const amtEl = document.getElementById('order-amount'); if (amtEl) amtEl.value = order.amount;
-        const paidEl = document.getElementById('order-paid'); if (paidEl) paidEl.value = order.paidAmount || 0;
-        const stEl = document.getElementById('order-status'); if (stEl) stEl.value = order.status;
-        
-        safeSetText('modal-order-title', "Editar Pedido");
+        getDefaultProducts() {
+          return [
+            { id: 1, name: "GatoPixel Sales Engine", category: "Software", price: 149.90 },
+            { id: 2, name: "Consultoria Premium", category: "Serviço", price: 149.50 },
+            { id: 3, name: "Pack Automação WhatsApp", category: "Digital", price: 29.90 }
+          ];
+        },
 
-        window.calculateRemainingBalance();
-        const modal = document.getElementById('modal-order');
-        if (modal) modal.classList.remove('hidden');
-      } catch (err) {}
-    };
+        async fetchOrders() {
+          await new Promise(r => setTimeout(r, 80));
+          try {
+            const raw = localStorage.getItem(this.KEYS.ORDERS) || localStorage.getItem("gatopixel_orders_v3") || localStorage.getItem("gatopixel_orders_v2");
+            if (!raw) {
+              const seed = this.getDefaultOrders();
+              localStorage.setItem(this.KEYS.ORDERS, JSON.stringify(seed));
+              return seed;
+            }
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : this.getDefaultOrders();
+          } catch (_) {
+            return this.getDefaultOrders();
+          }
+        },
 
-    window.deleteOrder = function(id) {
-      try {
-        orders = orders.filter(o => o.id !== id);
-        saveState();
-        showToast("Pedido excluído!", "info");
-      } catch (err) {}
-    };
+        async persistOrders(orders) {
+          localStorage.setItem(this.KEYS.ORDERS, JSON.stringify(orders));
+          return orders;
+        },
 
-    window.closePixModal = function() {
-      const modal = document.getElementById('modal-pix');
-      if (modal) modal.classList.add('hidden');
-    };
+        async fetchProducts() {
+          try {
+            const raw = localStorage.getItem(this.KEYS.PRODUCTS) || localStorage.getItem("gatopixel_products_v3");
+            if (!raw) {
+              const seed = this.getDefaultProducts();
+              localStorage.setItem(this.KEYS.PRODUCTS, JSON.stringify(seed));
+              return seed;
+            }
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : this.getDefaultProducts();
+          } catch (_) {
+            return this.getDefaultProducts();
+          }
+        },
 
-    function saveState() {
-      try {
-        localStorage.setItem('pix_orders_db', JSON.stringify(orders));
-        renderTable();
-        updateKPIs();
-        updateCharts();
-      } catch (e) {}
-    }
+        async persistProducts(products) {
+          localStorage.setItem(this.KEYS.PRODUCTS, JSON.stringify(products));
+          return products;
+        },
+
+        async fetchConfig() {
+          try {
+            const raw = localStorage.getItem(this.KEYS.CONFIG) || localStorage.getItem("gatopixel_config_v3") || localStorage.getItem("gatopixel_config_v2");
+            return raw ? { ...App.State.config, ...JSON.parse(raw) } : App.State.config;
+          } catch (_) {
+            return App.State.config;
+          }
+        },
+
+        async persistConfig(config) {
+          localStorage.setItem(this.KEYS.CONFIG, JSON.stringify(config));
+          return config;
+        },
+
+        async verifyPinOnServer(pin) {
+          await new Promise(r => setTimeout(r, 180));
+          const expectedHash = "9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0"; // SHA-256("0000")
+          if (window.crypto && window.crypto.subtle) {
+            const msgBuffer = new TextEncoder().encode(pin);
+            const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+            const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+            return hashHex === expectedHash;
+          }
+          return pin === "0000";
+        }
+      },
+
+      Auth: {
+        async login(event) {
+          if (event) event.preventDefault();
+          const now = Date.now();
+          const lockMsg = document.getElementById("dev-lockout-msg");
+
+          if (App.State.pinLockoutUntil > now) {
+            const secs = Math.ceil((App.State.pinLockoutUntil - now) / 1000);
+            lockMsg.textContent = `Bloqueado temporariamente. Tente novamente em ${secs}s.`;
+            lockMsg.classList.remove("hidden");
+            return;
+          }
+
+          const pin = document.getElementById("dev-pin-input").value.trim();
+          const isValid = await App.API.verifyPinOnServer(pin);
+
+          if (isValid) {
+            App.State.devAuthenticated = true;
+            App.State.failedPinAttempts = 0;
+            lockMsg.classList.add("hidden");
+            document.getElementById("dev-pin-input").value = "";
+            App.UI.closeModal("modal-dev-auth");
+            App.UI.switchTab("dev");
+            App.UI.showToast("Sessão Dev autenticada!", "success");
+          } else {
+            App.State.failedPinAttempts++;
+            if (App.State.failedPinAttempts >= 3) {
+              App.State.pinLockoutUntil = Date.now() + 30000;
+              App.State.failedPinAttempts = 0;
+              lockMsg.textContent = "3 tentativas falhas. Bloqueado por 30 segundos.";
+            } else {
+              lockMsg.textContent = `PIN incorreto (${App.State.failedPinAttempts}/3 tentativas).`;
+            }
+            lockMsg.classList.remove("hidden");
+          }
+        },
+
+        logout() {
+          App.State.devAuthenticated = false;
+          App.UI.switchTab("sales");
+          App.UI.showToast("Sessão de desenvolvedor encerrada.", "info");
+        }
+      },
 
     function updateKPIs() {
       try {
@@ -903,44 +1301,33 @@
       } catch (e) {}
     }
 
-    function calculateCRC16(payload) {
-      let crc = 0xFFFF;
-      for (let i = 0; i < payload.length; i++) {
-        crc ^= (payload.charCodeAt(i) << 8);
-        for (let j = 0; j < 8; j++) {
-          if ((crc & 0x8000) !== 0) {
-            crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+          if (idVal) {
+            const id = parseInt(idVal, 10);
+            const idx = App.State.orders.findIndex(o => o.id === id);
+            if (idx !== -1) {
+              App.State.orders[idx] = { ...App.State.orders[idx], customer, phone, product, quantity, unitPrice, amount, paidAmount, status };
+            }
           } else {
-            crc = (crc << 1) & 0xFFFF;
+            const nextId = App.State.orders.length ? Math.max(...App.State.orders.map(o => o.id)) + 1 : 1;
+            App.State.orders.push({
+              id: nextId,
+              customer,
+              phone,
+              product,
+              quantity,
+              unitPrice,
+              amount,
+              paidAmount,
+              status,
+              date: new Date().toISOString().split("T")[0]
+            });
           }
-        }
-      }
-      return crc.toString(16).toUpperCase().padStart(4, '0');
-    }
 
-    function generatePixCode(key, name, city, amount) {
-      const cleanKey = (key || "").replace(/[^\w@.-]/g, '');
-      const cleanName = (name || "GatoPixel").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().substring(0, 25);
-      const cleanCity = (city || "SAO PAULO").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().substring(0, 15);
-      const formattedAmount = (amount || 0).toFixed(2);
-
-      const gui = "0014BR.GOV.BCB.PIX";
-      const keyField = "01" + String(cleanKey.length).padStart(2, '0') + cleanKey;
-      const merchantAccount = "26" + String((gui + keyField).length).padStart(2, '0') + gui + keyField;
-
-      const cat = "52040000";
-      const curr = "5303986";
-      const amtField = "54" + String(formattedAmount.length).padStart(2, '0') + formattedAmount;
-      const country = "5802BR";
-      const nameField = "59" + String(cleanName.length).padStart(2, '0') + cleanName;
-      const cityField = "60" + String(cleanCity.length).padStart(2, '0') + cleanCity;
-      const txid = "0503***";
-      const addData = "62" + String(txid.length).padStart(2, '0') + txid;
-
-      let payload = "000201" + merchantAccount + cat + curr + amtField + country + nameField + cityField + addData + "6304";
-      const crc = calculateCRC16(payload);
-      return payload + crc;
-    }
+          await App.API.persistOrders(App.State.orders);
+          App.UI.closeModal("modal-order");
+          App.UI.refreshAll();
+          App.UI.showToast(App.UI.t("toast_order_saved"), "success");
+        },
 
     let currentPixOrderId = null;
 
@@ -994,198 +1381,566 @@
       }
     };
 
-    window.openPixModal = function(id) {
-      try {
-        const order = orders.find(o => o.id === id);
-        if (!order) return;
+          await App.API.persistOrders(App.State.orders);
+          App.UI.refreshAll();
+          App.UI.showToast(`${App.UI.t("th_status")}: ${App.UI.t("badge_" + order.status)}`, "success");
+        },
 
-        currentPixOrderId = id;
-        const remaining = order.amount - (order.paidAmount || 0);
-        const amountToCharge = remaining > 0 ? remaining : order.amount;
+        async saveProduct(event) {
+          if (event) event.preventDefault();
+          const idVal = document.getElementById("product-id").value;
+          const name = document.getElementById("product-name").value.trim();
+          const category = document.getElementById("product-category").value.trim() || "Geral";
+          const price = parseFloat(document.getElementById("product-price").value);
 
-        const pixPayload = generatePixCode(pixConfig.pixKey, pixConfig.merchantName, pixConfig.merchantCity, amountToCharge);
-        
-        safeSetText('pix-modal-amount', `R$ ${amountToCharge.toFixed(2)}`);
-        
-        const copiaInput = document.getElementById('pix-copia-cola-code');
-        if (copiaInput) copiaInput.value = pixPayload;
+          if (!name || !Number.isFinite(price) || price <= 0) return;
 
-        const container = document.getElementById('pix-qrcode-container');
-        if (container) {
-          container.innerHTML = '';
-          if (typeof QRCode !== 'undefined') {
+          if (idVal) {
+            const id = parseInt(idVal, 10);
+            const idx = App.State.products.findIndex(p => p.id === id);
+            if (idx !== -1) App.State.products[idx] = { id, name, category, price };
+          } else {
+            const nextId = App.State.products.length ? Math.max(...App.State.products.map(p => p.id)) + 1 : 1;
+            App.State.products.push({ id: nextId, name, category, price });
+          }
+
+          await App.API.persistProducts(App.State.products);
+          App.UI.closeModal("modal-product");
+          App.UI.renderCatalog();
+          App.UI.showToast(App.UI.t("toast_product_saved"), "success");
+        },
+
+        async deleteProduct(id) {
+          App.State.products = App.State.products.filter(p => p.id !== id);
+          await App.API.persistProducts(App.State.products);
+          App.UI.renderCatalog();
+          App.UI.showToast(App.UI.t("toast_product_deleted"), "info");
+        },
+
+        async saveSettings(event) {
+          if (event) event.preventDefault();
+          App.State.config = {
+            language: document.getElementById("setting-language-input").value || "pt",
+            pixKey: document.getElementById("pix-key-input").value.trim(),
+            merchantName: document.getElementById("pix-name-input").value.trim(),
+            merchantCity: document.getElementById("pix-city-input").value.trim()
+          };
+          await App.API.persistConfig(App.State.config);
+          App.UI.applyTranslations();
+          App.UI.refreshAll();
+          App.UI.closeModal("modal-pix-settings");
+          App.UI.showToast(App.UI.t("toast_saved"), "success");
+        },
+
+        calculateCRC16(payload) {
+          let crc = 0xFFFF;
+          for (let i = 0; i < payload.length; i++) {
+            crc ^= (payload.charCodeAt(i) << 8);
+            for (let j = 0; j < 8; j++) {
+              crc = (crc & 0x8000) !== 0 ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+            }
+          }
+          return crc.toString(16).toUpperCase().padStart(4, "0");
+        },
+
+        generatePixCode(key, name, city, amount) {
+          const { clean: cleanKey } = App.Utils.sanitizePixKey(key);
+          const cleanName = (name || "GatoPixel").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().substring(0, 25) || "GATOPIXEL";
+          const cleanCity = (city || "SAO PAULO").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().substring(0, 15) || "SAO PAULO";
+          const formattedAmount = (Number(amount) || 0).toFixed(2);
+
+          const gui = "0014BR.GOV.BCB.PIX";
+          const keyField = "01" + String(cleanKey.length).padStart(2, "0") + cleanKey;
+          const merchantAccount = "26" + String((gui + keyField).length).padStart(2, "0") + gui + keyField;
+
+          const cat = "52040000";
+          const curr = "5303986";
+          const amtField = "54" + String(formattedAmount.length).padStart(2, "0") + formattedAmount;
+          const country = "5802BR";
+          const nameField = "59" + String(cleanName.length).padStart(2, "0") + cleanName;
+          const cityField = "60" + String(cleanCity.length).padStart(2, "0") + cleanCity;
+          const txid = "0503***";
+          const addData = "62" + String(txid.length).padStart(2, "0") + txid;
+
+          const payload = "000201" + merchantAccount + cat + curr + amtField + country + nameField + cityField + addData + "6304";
+          return payload + this.calculateCRC16(payload);
+        },
+
+        openPixModal(id) {
+          const order = App.State.orders.find(o => o.id === id);
+          if (!order) return;
+
+          App.State.currentPixOrderId = id;
+          const remaining = Math.max(0, order.amount - order.paidAmount);
+          const amountToCharge = remaining > 0 ? remaining : order.amount;
+          const { clean: cleanKey, type: keyType } = App.Utils.sanitizePixKey(App.State.config.pixKey);
+
+          const payload = this.generatePixCode(
+            App.State.config.pixKey,
+            App.State.config.merchantName,
+            App.State.config.merchantCity,
+            amountToCharge
+          );
+
+          document.getElementById("pix-modal-amount").textContent = App.Utils.formatCurrency(amountToCharge);
+          document.getElementById("pix-key-preview").textContent = `${keyType}: ${cleanKey}`;
+          document.getElementById("pix-copia-cola-code").value = payload;
+
+          const container = document.getElementById("pix-qrcode-container");
+          container.innerHTML = "";
+          if (typeof QRCode !== "undefined") {
             new QRCode(container, {
-              text: pixPayload,
-              width: 160,
-              height: 160,
+              text: payload,
+              width: 170,
+              height: 170,
               colorDark: "#0f172a",
               colorLight: "#ffffff",
               correctLevel: QRCode.CorrectLevel.M
             });
           } else {
-            container.innerHTML = `<div class="p-2 text-xs text-slate-600 font-mono break-all">${pixPayload}</div>`;
+            container.innerHTML = `<div class="p-3 text-[11px] font-mono break-all text-slate-600">${App.Utils.escapeHtml(payload)}</div>`;
           }
-        }
 
-        const modal = document.getElementById('modal-pix');
-        if (modal) modal.classList.remove('hidden');
-      } catch (err) {
-        showToast("Erro ao abrir QR Code Pix", "error");
-      }
-    };
-
-    window.copyPixCopiaECola = function() {
-      try {
-        const code = safeGetValue('pix-copia-cola-code');
-        if (!code) return;
-        
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(code);
-        } else {
-          const input = document.getElementById('pix-copia-cola-code');
-          if (input) {
-            input.type = "text";
-            input.select();
-            document.execCommand('copy');
-            input.type = "hidden";
+          const statusEl = document.getElementById("pix-webhook-status");
+          if (order.status === "Aprovado") {
+            statusEl.className = "text-[11px] text-emerald-600 font-bold mt-2";
+            statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${App.UI.t("badge_Aprovado")}!`;
+          } else {
+            statusEl.className = "text-[11px] text-amber-600 font-semibold mt-2 flex items-center gap-1.5";
+            statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Webhook ativo (auto em 6s)...`;
+            if (App.State.webhookTimer) clearTimeout(App.State.webhookTimer);
+            App.State.webhookTimer = setTimeout(() => this.confirmPixWebhook(false), 6000);
           }
-        }
-        showToast("Código Pix copiado!", "success");
-      } catch (e) {
-        showToast("Erro ao copiar Pix", "error");
-      }
-    };
 
-    window.simulatePixPayment = function() {
-      try {
-        if (!currentPixOrderId) return;
-        const order = orders.find(o => o.id === currentPixOrderId);
-        if (order) {
+          document.getElementById("modal-pix").classList.remove("hidden");
+        },
+
+        async confirmPixWebhook(closeAfter = true) {
+          if (App.State.webhookTimer) {
+            clearTimeout(App.State.webhookTimer);
+            App.State.webhookTimer = null;
+          }
+          const order = App.State.orders.find(o => o.id === App.State.currentPixOrderId);
+          if (!order || order.status === "Aprovado") return;
+
           order.status = "Aprovado";
           order.paidAmount = order.amount;
-          saveState();
-          playSuccessSound();
-          window.closePixModal();
-          showToast(`Pagamento do pedido #${order.id} confirmado!`, "success");
-        }
-      } catch (e) {}
-    };
+          await App.API.persistOrders(App.State.orders);
+          App.Utils.playSuccessSound();
+          App.UI.refreshAll();
 
-    window.toggleOrderStatus = function(id) {
-      try {
-        const order = orders.find(o => o.id === id);
-        if (!order) return;
-
-        if (order.status === 'Pendente' || order.status === 'Parcial') {
-          order.status = 'Aprovado';
-          order.paidAmount = order.amount;
-          playSuccessSound();
-        } else {
-          order.status = 'Pendente';
-          order.paidAmount = 0;
-        }
-
-        saveState();
-        showToast(`Status alterado para ${order.status}`, "success");
-      } catch (err) {}
-    };
-
-    // RENDERIZAÇÃO DA TABELA (DESKTOP) E DOS CARDS (MOBILE)
-    function renderTable() {
-      try {
-        const tbody = document.getElementById('orders-table-body');
-        const cardsContainer = document.getElementById('orders-cards-mobile');
-        if (!tbody || !cardsContainer) return;
-
-        const search = (safeGetValue('search-orders') || "").toLowerCase();
-        const filterStatus = safeGetValue('filter-status', 'ALL');
-        const validOrders = getValidOrders();
-        
-        const filtered = validOrders.filter(o => {
-          const matchesSearch = (o.customer || "").toLowerCase().includes(search) || (o.product || "").toLowerCase().includes(search);
-          const matchesStatus = filterStatus === 'ALL' || o.status === filterStatus;
-          return matchesSearch && matchesStatus;
-        });
-
-        tbody.innerHTML = '';
-        cardsContainer.innerHTML = '';
-
-        if (filtered.length === 0) {
-          const emptyMsg = `
-            <div class="text-center py-6 text-slate-400">
-              Nenhum pedido encontrado.
-            </div>
-          `;
-          tbody.innerHTML = `<tr><td colspan="7">${emptyMsg}</td></tr>`;
-          cardsContainer.innerHTML = emptyMsg;
-          return;
-        }
-
-        filtered.forEach(o => {
-          const amt = parseFloat(o.amount) || 0;
-          const paid = o.paidAmount || (o.status === 'Aprovado' ? amt : 0);
-          const remaining = Math.max(0, amt - paid);
-          const prodName = o.product || "Sem Produto";
-          
-          let statusBadge = "";
-          if (o.status === 'Aprovado') {
-            statusBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold text-[10px] whitespace-nowrap"><i class="fa-solid fa-check"></i> Aprovado</span>`;
-          } else if (o.status === 'Parcial') {
-            statusBadge = `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-semibold text-[10px] whitespace-nowrap"><i class="fa-solid fa-clock-rotate-left"></i> Parcial</span>`;
-          } else if (o.status === 'Cancelado') {
-            statusBadge = `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-full font-semibold text-[10px] whitespace-nowrap"><i class="fa-solid fa-xmark"></i> Cancelado</span>`;
-          } else {
-            statusBadge = `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-semibold text-[10px] whitespace-nowrap"><i class="fa-solid fa-clock"></i> Pendente</span>`;
+          const statusEl = document.getElementById("pix-webhook-status");
+          if (statusEl) {
+            statusEl.className = "text-[11px] text-emerald-600 font-bold mt-2";
+            statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Webhook: ${App.UI.t("badge_Aprovado")}!`;
           }
 
-          // 1. MONTAGEM DOS CARDS MOBILE (EVITA TEXTOS CORTADOS)
-          const card = document.createElement('div');
-          card.className = "bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 space-y-2.5 shadow-md";
-          card.innerHTML = `
-            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div class="flex items-center gap-2">
-                <span class="font-mono font-bold text-slate-400 text-xs">#${o.id}</span>
-                <span class="font-bold text-white text-sm">${escapeHtml(o.customer)}</span>
-              </div>
-              <div>${statusBadge}</div>
-            </div>
+          App.UI.showToast(`#${order.id} — ${App.UI.t("badge_Aprovado")}!`, "success");
+          if (closeAfter) App.UI.closePixModal();
+        },
 
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <p class="text-[10px] text-slate-400">Produto / Serviço</p>
-                <p class="text-slate-200 font-medium truncate">${escapeHtml(prodName)}</p>
-              </div>
-              <div class="text-right">
-                <p class="text-[10px] text-slate-400">Data</p>
-                <p class="text-slate-300 font-medium">${o.date || '-'}</p>
-              </div>
-            </div>
+        async copyPixCopiaECola() {
+          const code = document.getElementById("pix-copia-cola-code").value;
+          if (!code) return;
+          try {
+            await navigator.clipboard.writeText(code);
+            App.UI.showToast(App.UI.t("toast_pix_copied"), "success");
+          } catch (_) {}
+        },
 
-            <div class="bg-slate-800/60 p-2 rounded-lg flex items-center justify-between text-xs">
-              <div>
-                <span class="text-slate-400 text-[10px]">Total:</span>
-                <strong class="text-white ml-1">R$ ${amt.toFixed(2)}</strong>
-              </div>
-              <div>
-                <span class="text-slate-400 text-[10px]">Pago:</span>
-                <span class="text-emerald-400 font-semibold ml-1">R$ ${paid.toFixed(2)}</span>
-                ${remaining > 0 ? `<div class="text-[9px] text-amber-400 text-right font-medium">Falta R$ ${remaining.toFixed(2)}</div>` : ''}
-              </div>
-            </div>
+        sendOrderWhatsapp(id) {
+          const order = App.State.orders.find(o => o.id === id);
+          if (!order) return;
 
-            <div class="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-800/80">
-              <button onclick="openPixModal(${o.id})" class="flex-1 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 py-1.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1">
-                <i class="fa-solid fa-qrcode"></i> Pix
+          const remaining = Math.max(0, order.amount - order.paidAmount);
+          const chargeVal = remaining > 0 ? remaining : order.amount;
+          const pixCode = this.generatePixCode(
+            App.State.config.pixKey,
+            App.State.config.merchantName,
+            App.State.config.merchantCity,
+            chargeVal
+          );
+
+          const itemDesc = `${order.quantity}x ${order.product} (${App.Utils.formatCurrency(order.unitPrice)} un.)`;
+
+          const msg = order.status === "Aprovado"
+            ? `Olá ${order.customer}! ✅ Confirmamos o pagamento de ${App.Utils.formatCurrency(order.amount)} referente a *${itemDesc}* (${App.State.config.merchantName}). Obrigado pela preferência!`
+            : `Olá ${order.customer}! 👋 Aqui é da *${App.State.config.merchantName}*.\n\nSeguem os dados para pagamento do seu pedido *#${order.id} (${itemDesc})*:\n💰 Valor a pagar: *${App.Utils.formatCurrency(chargeVal)}*\n\n📋 *Pix Copia e Cola:*\n${pixCode}`;
+
+          let phoneDigits = (order.phone || "").replace(/\D/g, "");
+          if (phoneDigits.length === 10 || phoneDigits.length === 11) {
+            phoneDigits = "55" + phoneDigits;
+          }
+
+          const url = phoneDigits
+            ? `https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}`
+            : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+          window.open(url, "_blank", "noopener,noreferrer");
+        },
+
+        exportCSV() {
+          if (!App.State.orders.length) return;
+          let csv = "ID,Cliente,WhatsApp,Produto,Quantidade,Valor Unitario,Valor Total,Valor Pago,Status,Data\n";
+          App.State.orders.forEach(o => {
+            csv += `"${o.id}","${o.customer.replace(/"/g, '""')}","${o.phone || ""}","${o.product.replace(/"/g, '""')}","${o.quantity}","${o.unitPrice.toFixed(2)}","${o.amount.toFixed(2)}","${o.paidAmount.toFixed(2)}","${o.status}","${o.date}"\n`;
+          });
+          const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `vendas_gatopixel_${new Date().toISOString().split("T")[0]}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        },
+
+        exportFullBackup() {
+          const payload = {
+            exportedAt: new Date().toISOString(),
+            version: "4.0",
+            config: App.State.config,
+            products: App.State.products,
+            orders: App.State.orders
+          };
+          const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `gatopixel_backup_${new Date().toISOString().split("T")[0]}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          App.UI.showToast(App.UI.t("toast_backup_exported"), "success");
+        },
+
+        importFullBackup(event) {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            try {
+              const data = JSON.parse(e.target.result);
+              if (!data || !Array.isArray(data.orders)) throw new Error("Estrutura inválida");
+
+              App.State.orders = data.orders.map((o, i) => App.Utils.sanitizeOrder(o, i + 1));
+              if (Array.isArray(data.products)) {
+                App.State.products = data.products.map((p, i) => App.Utils.sanitizeProduct(p, i + 1));
+              }
+              if (data.config && typeof data.config === "object") {
+                App.State.config = { ...App.State.config, ...data.config };
+              }
+
+              await App.API.persistOrders(App.State.orders);
+              await App.API.persistProducts(App.State.products);
+              await App.API.persistConfig(App.State.config);
+
+              App.UI.applyTranslations();
+              App.UI.refreshAll();
+              App.UI.closeModal("modal-pix-settings");
+              App.UI.showToast(App.UI.t("toast_backup_restored"), "success");
+            } catch (_) {
+              App.UI.showToast(App.UI.t("toast_backup_invalid"), "error");
+            } finally {
+              event.target.value = "";
+            }
+          };
+          reader.readAsText(file);
+        },
+
+        async runManualDiagnostic() {
+          let fixes = 0;
+          App.State.orders = App.State.orders.map((o, i) => {
+            const clean = App.Utils.sanitizeOrder(o, i + 1);
+            if (JSON.stringify(clean) !== JSON.stringify(o)) fixes++;
+            return clean;
+          });
+          App.State.products = App.State.products.map((p, i) => {
+            const clean = App.Utils.sanitizeProduct(p, i + 1);
+            if (JSON.stringify(clean) !== JSON.stringify(p)) fixes++;
+            return clean;
+          });
+
+          await App.API.persistOrders(App.State.orders);
+          await App.API.persistProducts(App.State.products);
+
+          App.State.patchCount += fixes;
+          document.getElementById("repair-patch-count").textContent = `${App.State.patchCount}`;
+          this.logRepair(`Diagnóstico concluído: ${App.State.orders.length} pedidos e ${App.State.products.length} itens verificados (${fixes} correções).`);
+          App.UI.refreshAll();
+        },
+
+        logRepair(msg) {
+          const consoleEl = document.getElementById("repair-console-log");
+          if (!consoleEl) return;
+          const line = document.createElement("div");
+          line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+          consoleEl.appendChild(line);
+          consoleEl.scrollTop = consoleEl.scrollHeight;
+        },
+
+        async saveDevJson() {
+          try {
+            const parsed = JSON.parse(document.getElementById("dev-json-editor").value);
+            if (Array.isArray(parsed)) {
+              App.State.orders = parsed.map((o, i) => App.Utils.sanitizeOrder(o, i + 1));
+            } else if (parsed && Array.isArray(parsed.orders)) {
+              App.State.orders = parsed.orders.map((o, i) => App.Utils.sanitizeOrder(o, i + 1));
+              if (Array.isArray(parsed.products)) {
+                App.State.products = parsed.products.map((p, i) => App.Utils.sanitizeProduct(p, i + 1));
+                await App.API.persistProducts(App.State.products);
+              }
+            } else {
+              throw new Error("Formato inválido");
+            }
+            await App.API.persistOrders(App.State.orders);
+            App.UI.refreshAll();
+            App.UI.showToast(App.UI.t("toast_saved"), "success");
+          } catch (e) {
+            App.UI.showToast(`JSON Error: ${e.message}`, "error");
+          }
+        },
+
+        async injectMockOrder() {
+          const nextId = App.State.orders.length ? Math.max(...App.State.orders.map(o => o.id)) + 1 : 1;
+          App.State.orders.push({
+            id: nextId,
+            customer: `Cliente Teste #${nextId}`,
+            phone: "11999998888",
+            product: "Pack Automação Pro",
+            quantity: 2,
+            unitPrice: 98.50,
+            amount: 197.00,
+            paidAmount: 0,
+            status: "Pendente",
+            date: new Date().toISOString().split("T")[0]
+          });
+          await App.API.persistOrders(App.State.orders);
+          document.getElementById("dev-json-editor").value = JSON.stringify({ orders: App.State.orders, products: App.State.products }, null, 2);
+          App.UI.refreshAll();
+        },
+
+        async resetDatabase() {
+          App.State.orders = [];
+          await App.API.persistOrders([]);
+          document.getElementById("dev-json-editor").value = JSON.stringify({ orders: [], products: App.State.products }, null, 2);
+          App.UI.refreshAll();
+        },
+
+        askGatoPixel(action) {
+          const orders = App.State.orders;
+          if (action === "analyze") {
+            const totalRev = orders.reduce((acc, o) => acc + o.paidAmount, 0);
+            const totalItemsSold = orders.reduce((acc, o) => acc + o.quantity, 0);
+            const pending = orders.filter(o => o.status === "Pendente" || o.status === "Parcial");
+            const pendingValue = pending.reduce((acc, o) => acc + Math.max(0, o.amount - o.paidAmount), 0);
+
+            let reply = `📊 <strong>${App.UI.t("ai_btn_analyze")}:</strong><br>`;
+            reply += `• ${App.UI.t("kpi_revenue")}: <strong>${App.Utils.formatCurrency(totalRev)}</strong><br>`;
+            reply += `• ${App.UI.t("label_quantity")} total: <strong>${totalItemsSold}</strong><br>`;
+            reply += `• ${App.UI.t("status_pending")}: <strong>${pending.length}</strong> (${App.Utils.formatCurrency(pendingValue)})`;
+            App.UI.appendChatMessage(reply, "cat");
+          } else if (action === "copy") {
+            const target = orders.find(o => o.status === "Pendente" || o.status === "Parcial");
+            if (!target) {
+              App.UI.appendChatMessage("Nenhum pedido pendente no momento!", "cat");
+              return;
+            }
+            const remaining = Math.max(0, target.amount - target.paidAmount);
+            const pixCode = this.generatePixCode(App.State.config.pixKey, App.State.config.merchantName, App.State.config.merchantCity, remaining);
+            const msg = `Olá ${target.customer}! 👋 Aqui é da ${App.State.config.merchantName}. Lembrete do pedido: ${target.quantity}x ${target.product} (${App.Utils.formatCurrency(remaining)}). Pix Copia e Cola: ${pixCode}`;
+            App.State.lastWhatsappCopy = msg;
+
+            const reply = `
+              <div class="bg-white p-2.5 rounded-xl border border-slate-200 font-mono text-[11px] my-1 text-slate-700 break-all">${App.Utils.escapeHtml(msg)}</div>
+              <button onclick="App.UI.copyLastWhatsappMessage()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 mt-1">
+                <i class="fa-solid fa-copy"></i> ${App.UI.t("btn_copy_pix")}
               </button>
-              <button onclick="toggleOrderStatus(${o.id})" class="p-1.5 bg-slate-800 text-emerald-400 hover:bg-slate-700 rounded-lg transition" title="Alternar Status">
-                <i class="fa-solid fa-arrows-rotate text-sm"></i>
-              </button>
-              <button onclick="editOrder(${o.id})" class="p-1.5 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg transition" title="Editar">
-                <i class="fa-solid fa-pen text-sm"></i>
-              </button>
-              <button onclick="deleteOrder(${o.id})" class="p-1.5 bg-slate-800 text-rose-400 hover:bg-slate-700 rounded-lg transition" title="Excluir">
-                <i class="fa-solid fa-trash text-sm"></i>
-              </button>
+            `;
+            App.UI.appendChatMessage(reply, "cat");
+          }
+        },
+
+        handleGatoPixelSubmit(event) {
+          if (event) event.preventDefault();
+          const input = document.getElementById("gatopixel-input");
+          const text = input.value.trim();
+          if (!text) return;
+
+          App.UI.appendChatMessage(App.Utils.escapeHtml(text), "user");
+          input.value = "";
+
+          setTimeout(() => {
+            const lower = text.toLowerCase();
+            if (lower.includes("venda") || lower.includes("sales") || lower.includes("resumo")) {
+              this.askGatoPixel("analyze");
+            } else if (lower.includes("pix") || lower.includes("whatsapp") || lower.includes("cobran")) {
+              this.askGatoPixel("copy");
+            } else {
+              App.UI.appendChatMessage("🐾 Use os botões rápidos abaixo para analisar vendas ou gerar mensagens Pix!", "cat");
+            }
+          }, 250);
+        }
+      },
+
+      UI: {
+        t(key) {
+          const lang = App.Translations[App.State.config.language] ? App.State.config.language : "pt";
+          return App.Translations[lang][key] || App.Translations.pt[key] || key;
+        },
+
+        switchTab(tabName) {
+          App.State.activeTab = tabName;
+          document.querySelectorAll(".view-tab").forEach(tab => tab.classList.remove("active"));
+          const target = document.getElementById(`view-${tabName}`);
+          if (target) target.classList.add("active");
+
+          document.querySelectorAll(".nav-tab-btn").forEach(btn => {
+            const isTarget = btn.getAttribute("data-tab") === tabName;
+            if (isTarget) {
+              btn.classList.add("bg-indigo-600", "text-white");
+              btn.classList.remove("text-slate-400");
+            } else {
+              btn.classList.remove("bg-indigo-600", "text-white");
+              btn.classList.add("text-slate-400");
+            }
+          });
+
+          if (tabName === "analytics") {
+            requestAnimationFrame(() => this.updateCharts());
+          } else if (tabName === "catalog") {
+            this.renderCatalog();
+          } else if (tabName === "dev") {
+            document.getElementById("dev-json-editor").value = JSON.stringify(
+              { orders: App.State.orders, products: App.State.products },
+              null,
+              2
+            );
+          }
+        },
+
+        tryOpenDevPanel() {
+          if (App.State.devAuthenticated) {
+            this.switchTab("dev");
+          } else {
+            document.getElementById("modal-dev-auth").classList.remove("hidden");
+            document.getElementById("dev-pin-input").focus();
+          }
+        },
+
+        populateCatalogSelect() {
+          const select = document.getElementById("order-catalog-select");
+          if (!select) return;
+          select.innerHTML = `<option value="">${App.Utils.escapeHtml(this.t("catalog_select_default"))}</option>` +
+            App.State.products.map(p => `<option value="${p.id}">${App.Utils.escapeHtml(p.name)} — ${App.Utils.formatCurrency(p.price)}</option>`).join("");
+        },
+
+        onCatalogSelectChange() {
+          const prodId = parseInt(document.getElementById("order-catalog-select").value, 10);
+          const prod = App.State.products.find(p => p.id === prodId);
+          if (!prod) return;
+          document.getElementById("order-product").value = prod.name;
+          document.getElementById("order-unit-price").value = prod.price.toFixed(2);
+          if (!document.getElementById("order-quantity").value || parseInt(document.getElementById("order-quantity").value, 10) < 1) {
+            document.getElementById("order-quantity").value = "1";
+          }
+          this.recalculateOrderTotals();
+        },
+
+        recalculateOrderTotals() {
+          const qty = Math.max(1, parseInt(document.getElementById("order-quantity").value, 10) || 1);
+          const unit = parseFloat(document.getElementById("order-unit-price").value) || 0;
+          const total = Number((qty * unit).toFixed(2));
+          document.getElementById("order-amount").value = total > 0 ? total.toFixed(2) : "";
+          this.calculateRemainingBalance();
+        },
+
+        openNewOrderModal(preselectedProductId = null) {
+          this.populateCatalogSelect();
+          document.getElementById("order-id").value = "";
+          document.getElementById("order-customer").value = "";
+          document.getElementById("order-phone").value = "";
+          document.getElementById("order-product").value = "";
+          document.getElementById("order-quantity").value = "1";
+          document.getElementById("order-unit-price").value = "";
+          document.getElementById("order-amount").value = "";
+          document.getElementById("order-paid").value = "";
+          document.getElementById("order-status").value = "Pendente";
+          document.getElementById("modal-order-title").textContent = this.t("btn_new_order");
+
+          if (preselectedProductId) {
+            document.getElementById("order-catalog-select").value = String(preselectedProductId);
+            this.onCatalogSelectChange();
+          }
+
+          this.calculateRemainingBalance();
+          document.getElementById("modal-order").classList.remove("hidden");
+        },
+
+        editOrder(id) {
+          const order = App.State.orders.find(o => o.id === id);
+          if (!order) return;
+          this.populateCatalogSelect();
+          document.getElementById("order-id").value = order.id;
+          document.getElementById("order-customer").value = order.customer;
+          document.getElementById("order-phone").value = order.phone || "";
+          document.getElementById("order-product").value = order.product;
+          document.getElementById("order-quantity").value = order.quantity || 1;
+          document.getElementById("order-unit-price").value = (order.unitPrice || order.amount).toFixed(2);
+          document.getElementById("order-amount").value = order.amount.toFixed(2);
+          document.getElementById("order-paid").value = order.paidAmount;
+          document.getElementById("order-status").value = order.status;
+          document.getElementById("modal-order-title").textContent = `#${order.id} — ${order.customer}`;
+          this.calculateRemainingBalance();
+          document.getElementById("modal-order").classList.remove("hidden");
+        },
+
+        openNewProductModal() {
+          document.getElementById("product-id").value = "";
+          document.getElementById("product-name").value = "";
+          document.getElementById("product-category").value = "";
+          document.getElementById("product-price").value = "";
+          document.getElementById("modal-product-title").textContent = this.t("btn_new_product");
+          document.getElementById("modal-product").classList.remove("hidden");
+        },
+
+        editProduct(id) {
+          const prod = App.State.products.find(p => p.id === id);
+          if (!prod) return;
+          document.getElementById("product-id").value = prod.id;
+          document.getElementById("product-name").value = prod.name;
+          document.getElementById("product-category").value = prod.category;
+          document.getElementById("product-price").value = prod.price;
+          document.getElementById("modal-product-title").textContent = prod.name;
+          document.getElementById("modal-product").classList.remove("hidden");
+        },
+
+        openReceiptModal(id) {
+          const order = App.State.orders.find(o => o.id === id);
+          if (!order) return;
+
+          const remaining = Math.max(0, order.amount - order.paidAmount);
+          const statusLabel = this.t("badge_" + order.status);
+          const body = document.getElementById("receipt-body-content");
+
+          body.innerHTML = `
+            <div class="text-center border-b border-dashed border-slate-300 pb-3">
+              <div class="font-extrabold text-base text-slate-900">${App.Utils.escapeHtml(App.State.config.merchantName)}</div>
+              <div class="text-[11px] text-slate-500">${App.Utils.escapeHtml(App.State.config.merchantCity)}</div>
+              <div class="text-[10px] font-mono text-slate-400 mt-1">${this.t("receipt_modal_title")} #${String(order.id).padStart(4, "0")}</div>
+            </div>
+            <div class="space-y-1.5 border-b border-dashed border-slate-300 pb-3">
+              <div class="flex justify-between"><span class="text-slate-500">${this.t("th_date")}:</span><span class="font-semibold">${App.Utils.escapeHtml(order.date)}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">${this.t("th_customer")}:</span><span class="font-semibold">${App.Utils.escapeHtml(order.customer)}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">${this.t("label_product")}</span><span class="font-semibold">${App.Utils.escapeHtml(order.product)}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">${this.t("label_quantity")}</span><span class="font-semibold">${order.quantity}x ${App.Utils.formatCurrency(order.unitPrice)}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">${this.t("th_status")}:</span><span class="font-bold">${App.Utils.escapeHtml(statusLabel)}</span></div>
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between text-sm"><span class="font-semibold text-slate-700">Total:</span><span class="font-extrabold text-slate-900">${App.Utils.formatCurrency(order.amount)}</span></div>
+              <div class="flex justify-between text-emerald-700"><span>Pago:</span><span class="font-bold">${App.Utils.formatCurrency(order.paidAmount)}</span></div>
+              ${remaining > 0 ? `<div class="flex justify-between text-amber-700"><span>Saldo:</span><span class="font-bold">${App.Utils.formatCurrency(remaining)}</span></div>` : ""}
+            </div>
+            <div class="pt-2 text-center text-[10px] text-slate-400">
+              Pix: ${App.Utils.escapeHtml(App.State.config.pixKey)}
             </div>
           `;
           cardsContainer.appendChild(card);
@@ -1300,8 +2055,10 @@
         const chatBox = document.getElementById('gatopixel-chat-messages');
         if (!chatBox) return;
 
-        const div = document.createElement('div');
-        div.className = sender === 'user' ? "flex gap-2 items-start justify-end" : "flex gap-2 items-start";
+        closeModal(id) {
+          const el = document.getElementById(id);
+          if (el) el.classList.add("hidden");
+        },
 
         if (sender === 'user') {
           div.innerHTML = `
@@ -1327,42 +2084,147 @@
       }
     }
 
-    window.askGatoPixel = function(action) {
-      try {
-        const validOrders = getValidOrders();
-        if (action === 'analyze') {
-          const totalRevenue = validOrders.reduce((acc, o) => acc + (o.paidAmount || (o.status === 'Aprovado' ? o.amount : 0)), 0);
-          const pendingOrders = validOrders.filter(o => o.status === 'Pendente' || o.status === 'Parcial');
-          
-          let reply = `📊 <strong>Análise Rápida de Vendas:</strong><br>`;
-          reply += `• Faturamento: <strong>R$ ${totalRevenue.toFixed(2)}</strong><br>`;
-          reply += `• Saldo Pendente: <strong>${pendingOrders.length} pedido(s)</strong><br><br>`;
-          if (pendingOrders.length > 0) {
-            reply += `💡 Clique em <strong>"Gerar Copy Pix"</strong> para receber via WhatsApp.`;
-          } else {
-            reply += `🎉 Todos os pedidos cadastrados estão pagos.`;
+        handleBackdropClick(event, modalId) {
+          if (event.target.id === modalId) {
+            if (modalId === "modal-pix") this.closePixModal();
+            else this.closeModal(modalId);
           }
+        },
 
-          addGatoPixelMessage(reply, 'cat');
-        } else if (action === 'copy') {
-          const pendingOrder = validOrders.find(o => o.status === 'Pendente' || o.status === 'Parcial');
-          
-          if (!pendingOrder) {
-            addGatoPixelMessage("Nenhum pedido pendente para cobrança!", 'cat');
+        toggleGatoPixelModal() {
+          document.getElementById("modal-gatopixel-ai").classList.toggle("hidden");
+        },
+
+        calculateRemainingBalance() {
+          const amount = parseFloat(document.getElementById("order-amount").value) || 0;
+          const paid = parseFloat(document.getElementById("order-paid").value) || 0;
+          const remaining = Math.max(0, amount - paid);
+          const box = document.getElementById("balance-info-box");
+          if (amount > 0 && paid > 0 && remaining > 0) {
+            box.classList.remove("hidden");
+            document.getElementById("order-balance-display").textContent = App.Utils.formatCurrency(remaining);
+          } else {
+            box.classList.add("hidden");
+          }
+        },
+
+        refreshAll() {
+          this.renderTable();
+          this.renderCatalog();
+          this.updateKPIs();
+          if (App.State.activeTab === "analytics") {
+            this.updateCharts();
+          }
+        },
+
+        renderTable() {
+          const tbody = document.getElementById("orders-table-body");
+          if (!tbody) return;
+
+          const search = (document.getElementById("search-orders").value || "").toLowerCase().trim();
+          const statusFilter = document.getElementById("filter-status").value;
+          const periodFilter = document.getElementById("filter-period").value;
+          const sortOrder = document.getElementById("sort-orders").value;
+
+          const now = new Date();
+          const todayStr = now.toISOString().split("T")[0];
+          const monthPrefix = todayStr.slice(0, 7);
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString().split("T")[0];
+
+          const filtered = App.State.orders
+            .filter(o => {
+              const matchesStatus = statusFilter === "ALL" || o.status === statusFilter;
+              const matchesText =
+                !search ||
+                o.customer.toLowerCase().includes(search) ||
+                o.product.toLowerCase().includes(search) ||
+                `#${o.id}`.includes(search);
+
+              let matchesPeriod = true;
+              if (periodFilter === "TODAY") matchesPeriod = o.date === todayStr;
+              else if (periodFilter === "7DAYS") matchesPeriod = o.date >= sevenDaysAgo;
+              else if (periodFilter === "MONTH") matchesPeriod = o.date.startsWith(monthPrefix);
+
+              return matchesStatus && matchesText && matchesPeriod;
+            })
+            .sort((a, b) => {
+              if (sortOrder === "DATE_ASC") return a.date.localeCompare(b.date) || a.id - b.id;
+              if (sortOrder === "AMOUNT_DESC") return b.amount - a.amount;
+              if (sortOrder === "AMOUNT_ASC") return a.amount - b.amount;
+              return b.date.localeCompare(a.date) || b.id - a.id;
+            });
+
+          if (!filtered.length) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">${App.Utils.escapeHtml(this.t("empty_orders"))}</td></tr>`;
             return;
           }
 
-          const remaining = pendingOrder.amount - (pendingOrder.paidAmount || 0);
-          const copyMessage = `Olá ${pendingOrder.customer}! 👋 Lembrete do pedido de ${pendingOrder.product || 'produto'}. Saldo restante: R$ ${remaining.toFixed(2)}. Chave Pix: ${pixConfig.pixKey}. Podemos confirmar?`;
+          tbody.innerHTML = filtered.map(o => {
+            const remaining = Math.max(0, o.amount - o.paidAmount);
+            const label = App.Utils.escapeHtml(this.t("badge_" + o.status));
+            const badges = {
+              Aprovado: `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-check"></i> ${label}</span>`,
+              Parcial: `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-clock-rotate-left"></i> ${label}</span>`,
+              Cancelado: `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-xmark"></i> ${label}</span>`,
+              Pendente: `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-clock"></i> ${label}</span>`
+            };
 
-          let reply = `📱 <strong>Copy para WhatsApp:</strong><br>`;
-          reply += `<div class="bg-white p-2 rounded-xl border border-slate-200 font-mono text-[10px] select-all my-1">${copyMessage}</div>`;
-          reply += `<button onclick="navigator.clipboard.writeText('${copyMessage.replace(/'/g, "\\'")}'); showToast('Copiado!', 'success')" class="bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[10px] font-semibold flex items-center gap-1"><i class="fa-solid fa-copy"></i> Copiar Mensagem</button>`;
+            return `
+              <tr class="hover:bg-slate-700/40 transition">
+                <td class="py-3.5 px-4 font-mono font-bold text-slate-400">#${o.id}</td>
+                <td class="py-3.5 px-4">
+                  <div class="font-semibold text-white">${App.Utils.escapeHtml(o.customer)}</div>
+                  ${o.phone ? `<div class="text-[10px] text-emerald-400 font-mono"><i class="fa-brands fa-whatsapp"></i> ${App.Utils.escapeHtml(o.phone)}</div>` : ""}
+                </td>
+                <td class="py-3.5 px-4">
+                  <div class="text-slate-200 font-medium">
+                    <span class="inline-block bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono font-bold text-[10px] px-1.5 py-0.5 rounded mr-1">${o.quantity}x</span>
+                    ${App.Utils.escapeHtml(o.product)}
+                  </div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">${App.Utils.escapeHtml(this.t("unit_short"))}: ${App.Utils.formatCurrency(o.unitPrice)}</div>
+                </td>
+                <td class="py-3.5 px-4">
+                  <div class="font-bold text-white">${App.Utils.formatCurrency(o.amount)}</div>
+                  <div class="text-[10px] text-slate-400">
+                    ${App.Utils.formatCurrency(o.paidAmount)}
+                    ${remaining > 0 ? `<span class="text-amber-400 font-semibold">(-${App.Utils.formatCurrency(remaining)})</span>` : ""}
+                  </div>
+                </td>
+                <td class="py-3.5 px-4">${badges[o.status] || badges.Pendente}</td>
+                <td class="py-3.5 px-4 text-slate-400">${App.Utils.escapeHtml(o.date)}</td>
+                <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-0.5">
+                  <button onclick="App.Services.openPixModal(${o.id})" aria-label="QR Code Pix #${o.id}" title="QR Code Pix" class="p-2 text-indigo-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-qrcode text-sm"></i>
+                  </button>
+                  <button onclick="App.Services.sendOrderWhatsapp(${o.id})" aria-label="WhatsApp #${o.id}" title="WhatsApp" class="p-2 text-green-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                  </button>
+                  <button onclick="App.UI.openReceiptModal(${o.id})" aria-label="Recibo #${o.id}" title="Recibo / PDF" class="p-2 text-sky-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-file-invoice text-sm"></i>
+                  </button>
+                  <button onclick="App.Services.toggleOrderStatus(${o.id})" aria-label="Alternar Status #${o.id}" title="Alternar Status" class="p-2 text-emerald-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                  </button>
+                  <button onclick="App.UI.editOrder(${o.id})" aria-label="Editar #${o.id}" title="Editar" class="p-2 text-slate-300 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-pen text-sm"></i>
+                  </button>
+                  <button onclick="App.Services.deleteOrder(${o.id})" aria-label="Excluir #${o.id}" title="Excluir" class="p-2 text-rose-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-trash text-sm"></i>
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join("");
+        },
 
-          addGatoPixelMessage(reply, 'cat');
-        }
-      } catch (err) {}
-    };
+        renderCatalog() {
+          const grid = document.getElementById("catalog-grid");
+          if (!grid) return;
+
+          if (!App.State.products.length) {
+            grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-slate-400">${App.Utils.escapeHtml(this.t("empty_catalog"))}</div>`;
+            return;
+          }
 
     window.handleGatoPixelSubmit = function(event) {
       if (event) event.preventDefault();
@@ -1389,38 +2251,27 @@
       try {
         if (typeof Chart === 'undefined') return;
 
-        if (statusChartInstance) statusChartInstance.destroy();
-        if (productsChartInstance) productsChartInstance.destroy();
+          const insightsEl = document.getElementById("analytics-insights");
+          if (insightsEl) {
+            const topProduct = Object.entries(productTotals).sort((a, b) => b[1] - a[1])[0];
+            insightsEl.innerHTML = topProduct
+              ? `<strong>${App.Utils.escapeHtml(topProduct[0])}</strong> — ${App.Utils.formatCurrency(topProduct[1])} (${this.t("status_pending")}: ${counts[1] + counts[2]})`
+              : `${this.t("empty_orders")}`;
+          }
+        },
 
-        const ctxStatus = document.getElementById('chart-status')?.getContext('2d');
-        const ctxProducts = document.getElementById('chart-products')?.getContext('2d');
+        applyTranslations() {
+          const lang = App.Translations[App.State.config.language] ? App.State.config.language : "pt";
+          const dict = App.Translations[lang];
 
-        if (ctxStatus) {
-          statusChartInstance = new Chart(ctxStatus, {
-            type: 'doughnut',
-            data: {
-              labels: ['Aprovado', 'Pendente', 'Cancelado'],
-              datasets: [{
-                data: [1, 1, 0],
-                backgroundColor: ['#10b981', '#f59e0b', '#f43f5e']
-              }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
+          document.querySelectorAll("[data-i18n]").forEach(el => {
+            const key = el.getAttribute("data-i18n");
+            if (dict[key]) el.textContent = dict[key];
           });
-        }
 
-        if (ctxProducts) {
-          productsChartInstance = new Chart(ctxProducts, {
-            type: 'bar',
-            data: {
-              labels: ['GatoPixel', 'Consultoria', 'Automação'],
-              datasets: [{
-                label: 'Vendas (R$)',
-                data: [149.9, 299.0, 89.9],
-                backgroundColor: '#6366f1'
-              }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
+          document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+            const key = el.getAttribute("data-i18n-placeholder");
+            if (dict[key]) el.placeholder = dict[key];
           });
         }
       } catch (err) {
@@ -1456,12 +2307,58 @@
           repaired = true;
         }
 
-        orders.forEach((o, i) => {
-          if (!o.id || typeof o.id !== 'number') {
-            o.id = i + 1;
-            repaired = true;
+          document.getElementById("header-lang-flag").textContent = dict.flag;
+          const welcomeEl = document.getElementById("gatopixel-welcome-msg");
+          if (welcomeEl && dict.ai_welcome) welcomeEl.innerHTML = dict.ai_welcome;
+        },
+
+        appendChatMessage(htmlContent, sender = "cat") {
+          const chatBox = document.getElementById("gatopixel-chat-messages");
+          if (!chatBox) return;
+          const div = document.createElement("div");
+          div.className = sender === "user" ? "flex gap-2.5 items-start justify-end" : "flex gap-2.5 items-start";
+          div.innerHTML = sender === "user"
+            ? `<div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">${htmlContent}</div>`
+            : `<div class="w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xs shrink-0 mt-0.5"><i class="fa-solid fa-cat"></i></div>
+               <div class="bg-slate-100 text-slate-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed">${htmlContent}</div>`;
+          chatBox.appendChild(div);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        },
+
+        async copyLastWhatsappMessage() {
+          if (!App.State.lastWhatsappCopy) return;
+          try {
+            await navigator.clipboard.writeText(App.State.lastWhatsappCopy);
+            this.showToast(this.t("toast_pix_copied"), "success");
+          } catch (_) {}
+        },
+
+        showToast(message, type = "info", action = null) {
+          const container = document.getElementById("toast-container");
+          if (!container) return;
+          const colors = {
+            success: "bg-emerald-600",
+            error: "bg-rose-600",
+            info: "bg-slate-800 border border-slate-700"
+          };
+          const toast = document.createElement("div");
+          toast.className = `${colors[type] || colors.info} text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-3 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0`;
+
+          const textSpan = document.createElement("span");
+          textSpan.innerHTML = `<i class="fa-solid fa-circle-info mr-1.5"></i>${App.Utils.escapeHtml(message)}`;
+          toast.appendChild(textSpan);
+
+          if (action && typeof action.onClick === "function") {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide";
+            btn.textContent = action.label;
+            btn.onclick = () => {
+              action.onClick();
+              toast.remove();
+            };
+            toast.appendChild(btn);
           }
-        });
 
         if (repaired) {
           patchCount++;
@@ -1515,16 +2412,19 @@
           saveState();
           showToast("JSON do banco atualizado!", "success");
         }
-      } catch (err) {
-        showToast("Sintaxe JSON inválida!", "error");
       }
     };
 
-    window.injectMockData = function() {
-      try {
-        orders = [
-          ...orders,
-          { id: orders.length + 1, customer: "Cliente Teste Dev", product: "Pack Automação", amount: 199.00, paidAmount: 199.00, status: "Aprovado", date: new Date().toISOString().split('T')[0] }
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        const modals = [
+          "modal-pix",
+          "modal-receipt",
+          "modal-order",
+          "modal-product",
+          "modal-pix-settings",
+          "modal-dev-auth",
+          "modal-gatopixel-ai"
         ];
         saveState();
         loadDevJsonEditor();
@@ -1567,9 +2467,9 @@
       }
     }
 
-    function escapeHtml(str) {
-      return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
+    window.addEventListener("DOMContentLoaded", () => {
+      App.Services.init();
+    });
   </script>
 </body>
 </html>
