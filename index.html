@@ -1,38 +1,51 @@
-with open("gatopixel-sales-v4.html", "r", encoding="utf-8") as f:
-    html = f.read()
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>GatoPixel Sales — Sistema Autossustentável de Vendas Pix</title>
 
-# 1. Print CSS: allow printing either #modal-receipt OR #modal-cash-report
-old_print_css = '''    /* Estilos exclusivos para impressão / PDF do Comprovante */
-    @media print {
-      body * {
-        visibility: hidden !important;
-      }
-      #modal-receipt,
-      #modal-receipt * {
-        visibility: visible !important;
-      }
-      #modal-receipt {
-        position: fixed !important;
-        inset: 0 !important;
-        background: #ffffff !important;
-        backdrop-filter: none !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: flex-start !important;
-        justify-content: center !important;
-      }
-      #printable-receipt-card {
-        box-shadow: none !important;
-        border: 1px solid #cbd5e1 !important;
-        width: 100% !important;
-        max-width: 420px !important;
-      }
-      .no-print {
-        display: none !important;
-      }
-    }'''
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js & QRCode.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-new_print_css = '''    /* Estilos exclusivos para impressão / PDF do Comprovante e Fechamento de Caixa */
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    * {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .view-tab {
+      display: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .view-tab.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .modal-backdrop {
+      background-color: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(6px);
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* Estilos exclusivos para impressão / PDF do Comprovante e Fechamento de Caixa */
     @media print {
       body * {
         visibility: hidden !important;
@@ -64,129 +77,449 @@ new_print_css = '''    /* Estilos exclusivos para impressão / PDF do Comprovant
       .no-print {
         display: none !important;
       }
-    }'''
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-800 antialiased min-h-screen flex flex-col">
 
-assert old_print_css in html
-html = html.replace(old_print_css, new_print_css, 1)
+  <!-- BARRA DE NAVEGAÇÃO SUPERIOR -->
+  <header class="bg-slate-900/95 backdrop-blur border-b border-slate-800 text-white sticky top-0 z-30 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-14 sm:h-16">
+        
+        <!-- LOGO & STATUS DE CONEXÃO -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-500/30">
+            <i class="fa-solid fa-cat"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-base tracking-tight text-white">GatoPixel Sales</span>
+              <span id="connection-badge" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-semibold">Online</span>
+            </div>
+            <p class="hidden sm:block text-[11px] text-slate-400" data-i18n="app_subtitle">Sistema Autossustentável de Vendas Pix</p>
+          </div>
+        </div>
 
-# 2. Header button for Fechamento de Caixa (Relatório PDF)
-old_header_btns = '''          <button onclick="App.Services.exportFullBackup()" aria-label="Baixar Backup JSON" title="Baixar Backup (.JSON)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-1.5">
-            <i class="fa-solid fa-download text-sky-400 text-sm"></i>
-            <span class="hidden md:inline" data-i18n="btn_backup_export">Baixar Backup</span>
-          </button>'''
+        <!-- MENU DE NAVEGAÇÃO DESKTOP -->
+        <nav aria-label="Navegação Principal" class="hidden lg:flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
+          <button data-tab="sales" onclick="App.UI.switchTab('sales')" class="nav-tab-btn bg-indigo-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-receipt"></i>
+            <span data-i18n="nav_sales">Vendas & Pedidos</span>
+          </button>
+          <button data-tab="catalog" onclick="App.UI.switchTab('catalog')" class="nav-tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-box-open text-violet-400"></i>
+            <span data-i18n="nav_catalog">Catálogo</span>
+          </button>
+          <button data-tab="analytics" onclick="App.UI.switchTab('analytics')" class="nav-tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span data-i18n="nav_dashboard">Dashboard & IA</span>
+          </button>
+          <button data-tab="autorepair" onclick="App.UI.switchTab('autorepair')" class="nav-tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+            <span data-i18n="nav_autorepair">Auto-Reparo</span>
+          </button>
+          <button data-tab="dev" onclick="App.UI.tryOpenDevPanel()" class="nav-tab-btn text-slate-400 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-code text-amber-400"></i>
+            <span data-i18n="nav_dev">Painel Dev</span>
+          </button>
+        </nav>
 
-new_header_btns = '''          <button onclick="App.UI.openCashReportModal()" aria-label="Fechamento de Caixa PDF" title="Fechamento de Caixa / Relatório PDF" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-1.5">
+        <!-- BOTÕES DE AÇÃO SUPERIORES -->
+        <div class="flex items-center gap-2">
+          <button onclick="App.UI.openCashReportModal()" aria-label="Fechamento de Caixa PDF" title="Fechamento de Caixa / Relatório PDF" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-1.5">
             <i class="fa-solid fa-file-pdf text-rose-400 text-sm"></i>
             <span class="hidden md:inline" data-i18n="btn_cash_report">Fechamento</span>
           </button>
           <button onclick="App.Services.exportFullBackup()" aria-label="Baixar Backup JSON" title="Baixar Backup (.JSON)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-1.5">
             <i class="fa-solid fa-download text-sky-400 text-sm"></i>
             <span class="hidden lg:inline" data-i18n="btn_backup_export">Baixar Backup</span>
-          </button>'''
+          </button>
+          <button onclick="App.Services.exportCSV()" aria-label="Exportar vendas para CSV" title="Exportar CSV" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-file-csv text-emerald-400 text-sm"></i>
+            <span class="hidden sm:inline" data-i18n="btn_export">Exportar</span>
+          </button>
+          <button onclick="App.UI.openSettingsModal()" aria-label="Configurações Pix, Backup e Idioma" title="Configurações Pix, Backup & Idioma" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl transition text-xs flex items-center gap-2">
+            <i class="fa-solid fa-gear text-indigo-400 text-sm"></i>
+            <span id="header-lang-flag" class="text-sm">🇧🇷</span>
+          </button>
+          <button onclick="App.UI.openNewOrderModal()" aria-label="Criar Novo Pedido" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i>
+            <span data-i18n="btn_new_order">Novo Pedido</span>
+          </button>
+        </div>
+      </div>
 
-assert old_header_btns in html
-html = html.replace(old_header_btns, new_header_btns, 1)
+      <!-- MENU DE NAVEGAÇÃO MOBILE -->
+      <nav aria-label="Navegação Mobile" class="flex lg:hidden items-center gap-1.5 pb-3 overflow-x-auto">
+        <button data-tab="sales" onclick="App.UI.switchTab('sales')" class="nav-tab-btn bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-receipt"></i> <span data-i18n="nav_sales">Vendas</span>
+        </button>
+        <button data-tab="catalog" onclick="App.UI.switchTab('catalog')" class="nav-tab-btn text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-box-open text-violet-400"></i> <span data-i18n="nav_catalog">Catálogo</span>
+        </button>
+        <button data-tab="analytics" onclick="App.UI.switchTab('analytics')" class="nav-tab-btn text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-pie"></i> <span data-i18n="nav_dashboard">Dashboard</span>
+        </button>
+        <button data-tab="autorepair" onclick="App.UI.switchTab('autorepair')" class="nav-tab-btn text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-shield-halved text-emerald-400"></i> <span data-i18n="nav_autorepair">Auto-Reparo</span>
+        </button>
+        <button data-tab="dev" onclick="App.UI.tryOpenDevPanel()" class="nav-tab-btn text-slate-400 bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5">
+          <i class="fa-solid fa-code text-amber-400"></i> <span data-i18n="nav_dev">Dev</span>
+        </button>
+      </nav>
+    </div>
+  </header>
 
-# 3. Filter status dropdown: add "Vencidos" (OVERDUE) option
-old_filter_status = '''          <select id="filter-status" aria-label="Filtrar por status" onchange="App.UI.renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-[11px] sm:text-xs rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 focus:outline-none focus:border-indigo-500">
-            <option value="ALL" data-i18n="status_all">Todos os Status</option>
-            <option value="Aprovado" data-i18n="status_approved">Aprovados</option>
-            <option value="Pendente" data-i18n="status_pending">Pendentes</option>
-            <option value="Parcial" data-i18n="status_partial">Parciais</option>
-            <option value="Cancelado" data-i18n="status_canceled">Cancelados</option>
-          </select>'''
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-3.5 sm:space-y-6 pb-20 sm:pb-8">
 
-new_filter_status = '''          <select id="filter-status" aria-label="Filtrar por status" onchange="App.UI.renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-[11px] sm:text-xs rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 focus:outline-none focus:border-indigo-500">
+    <!-- KPI CARDS (COMPACTO PARA MOBILE) -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3 sm:p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-0.5 min-w-0">
+          <p class="text-[11px] sm:text-xs font-medium text-slate-400 truncate" data-i18n="kpi_revenue">Faturamento Recebido</p>
+          <h3 id="kpi-revenue" class="text-base sm:text-xl font-extrabold text-white truncate">R$ 0,00</h3>
+          <p class="text-[10px] text-emerald-400 font-medium flex items-center gap-1 truncate">
+            <i class="fa-solid fa-circle-check"></i> <span data-i18n="kpi_confirmed">Receita Confirmada</span>
+          </p>
+        </div>
+        <div class="w-9 h-9 sm:w-11 sm:h-11 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-base sm:text-lg border border-emerald-500/20 shrink-0 ml-2">
+          <i class="fa-solid fa-sack-dollar"></i>
+        </div>
+      </div>
+
+      <!-- CARD: FALTA RECEBER (A RECEBER) -->
+      <div onclick="App.UI.toggleReceivableBreakdown()" role="button" tabindex="0" title="Clique para ver detalhamento a receber" class="cursor-pointer bg-amber-950/25 hover:bg-amber-950/40 border border-amber-500/30 rounded-2xl p-3 sm:p-4 flex items-center justify-between shadow-sm transition">
+        <div class="space-y-0.5 min-w-0">
+          <p class="text-[11px] sm:text-xs font-medium text-amber-300 truncate flex items-center gap-1">
+            <span data-i18n="kpi_receivable">Falta Receber</span>
+            <i class="fa-solid fa-chevron-down text-[9px] opacity-80"></i>
+          </p>
+          <h3 id="kpi-receivable" class="text-base sm:text-xl font-extrabold text-amber-400 truncate">R$ 0,00</h3>
+          <p id="kpi-receivable-sub" class="text-[10px] text-amber-300/80 font-medium truncate">0 clientes em aberto</p>
+        </div>
+        <div class="w-9 h-9 sm:w-11 sm:h-11 bg-amber-500/15 text-amber-400 rounded-xl flex items-center justify-center text-base sm:text-lg border border-amber-500/30 shrink-0 ml-2">
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3 sm:p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-0.5 min-w-0">
+          <p class="text-[11px] sm:text-xs font-medium text-slate-400 truncate" data-i18n="kpi_total_orders">Total de Pedidos</p>
+          <h3 id="kpi-total-orders" class="text-base sm:text-xl font-extrabold text-white truncate">0</h3>
+          <p class="text-[10px] text-slate-400 truncate" data-i18n="kpi_registered">Registrados no Sistema</p>
+        </div>
+        <div class="w-9 h-9 sm:w-11 sm:h-11 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center text-base sm:text-lg border border-indigo-500/20 shrink-0 ml-2">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3 sm:p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-0.5 min-w-0">
+          <p class="text-[11px] sm:text-xs font-medium text-slate-400 truncate" data-i18n="kpi_conversion">Conversão Pix</p>
+          <h3 id="kpi-conversion" class="text-base sm:text-xl font-extrabold text-white truncate">0%</h3>
+          <p class="text-[10px] text-emerald-400 truncate" data-i18n="kpi_approved">Pagamentos Aprovados</p>
+        </div>
+        <div class="w-9 h-9 sm:w-11 sm:h-11 bg-sky-500/10 text-sky-400 rounded-xl flex items-center justify-center text-base sm:text-lg border border-sky-500/20 shrink-0 ml-2">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+      </div>
+
+      <div class="col-span-2 sm:col-span-1 bg-slate-800/60 border border-slate-700/60 rounded-2xl p-3 sm:p-4 flex items-center justify-between shadow-sm">
+        <div class="space-y-0.5 min-w-0">
+          <p class="text-[11px] sm:text-xs font-medium text-slate-400 truncate" data-i18n="kpi_avg_ticket">Ticket Médio</p>
+          <h3 id="kpi-avg-ticket" class="text-base sm:text-xl font-extrabold text-white truncate">R$ 0,00</h3>
+          <p class="text-[10px] text-slate-400 truncate" data-i18n="kpi_avg_client">Valor Médio por Cliente</p>
+        </div>
+        <div class="w-9 h-9 sm:w-11 sm:h-11 bg-violet-500/10 text-violet-400 rounded-xl flex items-center justify-center text-base sm:text-lg border border-violet-500/20 shrink-0 ml-2">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAINEL DETALHADO: QUANTO FALTA PARA RECEBER -->
+    <section id="receivable-breakdown-panel" class="bg-slate-800/80 border border-amber-500/30 rounded-2xl p-3.5 sm:p-5 shadow-lg space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center text-xs border border-amber-500/30">
+            <i class="fa-solid fa-coins"></i>
+          </span>
+          <div>
+            <h2 class="text-xs sm:text-sm font-bold text-white" data-i18n="receivable_panel_title">Detalhamento a Receber (Saldo em Aberto)</h2>
+            <p id="receivable-summary-line" class="text-[11px] text-slate-400">Calculando saldos pendentes e parciais...</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px]">
+          <span id="receivable-overdue-pill" class="hidden bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2.5 py-1 rounded-lg font-bold animate-pulse">Vencidos: R$ 0,00</span>
+          <span id="receivable-pending-pill" class="bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-lg font-semibold">Pendentes: R$ 0,00</span>
+          <span id="receivable-partial-pill" class="bg-blue-500/15 text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-lg font-semibold">Parciais: R$ 0,00</span>
+        </div>
+      </div>
+
+      <!-- Barra de progresso Recebido vs Falta Receber -->
+      <div class="space-y-1">
+        <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden flex border border-slate-700/70">
+          <div id="receivable-bar-paid" class="bg-emerald-500 h-full transition-all duration-300" style="width: 0%"></div>
+          <div id="receivable-bar-due" class="bg-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="flex justify-between text-[10px] text-slate-400">
+          <span id="receivable-pct-paid">Recebido: 0%</span>
+          <span id="receivable-pct-due">Falta receber: 0%</span>
+        </div>
+      </div>
+
+      <!-- Lista compacta de clientes com saldo devedor -->
+      <div id="receivable-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"></div>
+    </section>
+
+    <!-- VISTA 1: TABELA DE PEDIDOS & VENDAS -->
+    <section id="view-sales" class="view-tab active bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 sm:p-5 shadow-xl space-y-3 sm:space-y-4">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-700/60">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white tracking-tight" data-i18n="table_title">Lista de Vendas & QR Codes Pix</h2>
+          <p class="text-[11px] sm:text-xs text-slate-400" data-i18n="table_subtitle">Gerencie status, cobranças WhatsApp, recibos e QR Codes Pix</p>
+        </div>
+
+        <!-- FILTROS, PERÍODO, ORDENAÇÃO E BUSCA -->
+        <div class="grid grid-cols-2 lg:flex items-center gap-1.5 sm:gap-2">
+          <select id="filter-period" aria-label="Filtrar por período" onchange="App.UI.renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-[11px] sm:text-xs rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 focus:outline-none focus:border-indigo-500">
+            <option value="ALL" data-i18n="period_all">Todo o Período</option>
+            <option value="TODAY" data-i18n="period_today">Hoje</option>
+            <option value="7DAYS" data-i18n="period_7days">Últimos 7 dias</option>
+            <option value="MONTH" data-i18n="period_month">Este Mês</option>
+          </select>
+
+          <select id="filter-status" aria-label="Filtrar por status" onchange="App.UI.renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-[11px] sm:text-xs rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 focus:outline-none focus:border-indigo-500">
             <option value="ALL" data-i18n="status_all">Todos os Status</option>
             <option value="OVERDUE" data-i18n="status_overdue">⚠️ Vencidos</option>
             <option value="Aprovado" data-i18n="status_approved">Aprovados</option>
             <option value="Pendente" data-i18n="status_pending">Pendentes</option>
             <option value="Parcial" data-i18n="status_partial">Parciais</option>
             <option value="Cancelado" data-i18n="status_canceled">Cancelados</option>
-          </select>'''
-
-assert old_filter_status in html
-html = html.replace(old_filter_status, new_filter_status, 1)
-
-# 4. Receivable panel header: add Overdue counter pill
-old_receivable_pills = '''        <div class="flex items-center gap-2 text-[11px]">
-          <span id="receivable-pending-pill" class="bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-lg font-semibold">Pendentes: R$ 0,00</span>
-          <span id="receivable-partial-pill" class="bg-blue-500/15 text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-lg font-semibold">Parciais: R$ 0,00</span>
-        </div>'''
-
-new_receivable_pills = '''        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px]">
-          <span id="receivable-overdue-pill" class="hidden bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2.5 py-1 rounded-lg font-bold animate-pulse">Vencidos: R$ 0,00</span>
-          <span id="receivable-pending-pill" class="bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-lg font-semibold">Pendentes: R$ 0,00</span>
-          <span id="receivable-partial-pill" class="bg-blue-500/15 text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-lg font-semibold">Parciais: R$ 0,00</span>
-        </div>'''
-
-assert old_receivable_pills in html
-html = html.replace(old_receivable_pills, new_receivable_pills, 1)
-
-# 5. Order Modal: add Customer Datalist (auto-fill phone), Discount (R$ or %), Shipping/Fee, and Due Date
-old_order_modal_form = '''      <form onsubmit="App.Services.saveOrder(event)" class="space-y-3 text-xs">
-        <input type="hidden" id="order-id">
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label for="order-customer" class="font-semibold text-slate-700" data-i18n="label_customer">Nome do Cliente:</label>
-            <input type="text" id="order-customer" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label for="order-phone" class="font-semibold text-slate-700" data-i18n="label_whatsapp">WhatsApp (Opcional):</label>
-            <input type="tel" id="order-phone" placeholder="11999999999" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
-          </div>
-        </div>
-
-        <!-- LISTA DE PRODUTOS / ITENS DO PEDIDO -->
-        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-800 flex items-center gap-1.5">
-              <i class="fa-solid fa-layer-group text-indigo-600"></i>
-              <span data-i18n="label_order_items">Itens do Pedido:</span>
-            </span>
-            <button type="button" onclick="App.UI.addOrderItemRow()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg font-semibold text-[11px] flex items-center gap-1 transition shadow-sm">
-              <i class="fa-solid fa-plus"></i> <span data-i18n="btn_add_item">Adicionar Produto</span>
-            </button>
-          </div>
-
-          <div id="order-items-container" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
-        </div>
-
-        <!-- VALOR TOTAL CALCULADO & VALOR JÁ PAGO -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label for="order-amount" class="font-semibold text-indigo-700" data-i18n="label_total_amount">Valor Total (R$):</label>
-            <input type="number" step="0.01" min="0.01" id="order-amount" readonly class="w-full mt-1 bg-indigo-50/70 border border-indigo-200 rounded-xl p-2.5 text-indigo-900 font-extrabold cursor-not-allowed focus:outline-none">
-          </div>
-          <div>
-            <label for="order-paid" class="font-semibold text-slate-700" data-i18n="label_paid_amount">Valor Já Pago (R$):</label>
-            <input type="number" step="0.01" min="0" id="order-paid" oninput="App.UI.calculateRemainingBalance()" placeholder="0.00" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
-          </div>
-        </div>
-
-        <div id="balance-info-box" class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-amber-800 hidden flex items-center justify-between">
-          <span data-i18n="label_remaining_balance">Saldo Restante a Cobrar:</span>
-          <strong id="order-balance-display">R$ 0,00</strong>
-        </div>
-
-        <div>
-          <label for="order-status" class="font-semibold text-slate-700" data-i18n="label_status">Status do Pagamento:</label>
-          <select id="order-status" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-indigo-500">
-            <option value="Pendente">Pendente</option>
-            <option value="Parcial">Parcial</option>
-            <option value="Aprovado">Aprovado</option>
-            <option value="Cancelado">Cancelado</option>
           </select>
+
+          <select id="sort-orders" aria-label="Ordenar pedidos" onchange="App.UI.renderTable()" class="bg-slate-900 border border-slate-700 text-slate-200 text-[11px] sm:text-xs rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 focus:outline-none focus:border-indigo-500">
+            <option value="DATE_DESC" data-i18n="sort_newest">Mais Recentes</option>
+            <option value="DATE_ASC" data-i18n="sort_oldest">Mais Antigos</option>
+            <option value="AMOUNT_DESC" data-i18n="sort_highest">Maior Valor</option>
+            <option value="AMOUNT_ASC" data-i18n="sort_lowest">Menor Valor</option>
+          </select>
+
+          <div class="relative col-span-1 lg:min-w-[200px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 sm:top-3 text-slate-500 text-[11px] sm:text-xs"></i>
+            <input type="text" id="search-orders" aria-label="Buscar pedidos" oninput="App.UI.renderTable()" placeholder="Buscar cliente ou produto..." data-i18n-placeholder="search_placeholder" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-[11px] sm:text-xs rounded-xl pl-8 sm:pl-9 pr-3 py-2 sm:py-2.5 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- CARDS COMPACTOS PARA CELULAR (< 768px) -->
+      <div id="orders-mobile-cards" class="md:hidden space-y-2.5"></div>
+
+      <!-- TABELA COMPLETA PARA TABLET / DESKTOP (>= 768px) -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="text-slate-400 border-b border-slate-700/60 uppercase text-[11px] tracking-wider">
+              <th class="py-3 px-4">ID</th>
+              <th class="py-3 px-4" data-i18n="th_customer">Cliente</th>
+              <th class="py-3 px-4" data-i18n="th_product_qty">Produto / Qtd</th>
+              <th class="py-3 px-4" data-i18n="th_total_paid">Total / Pago</th>
+              <th class="py-3 px-4" data-i18n="th_status">Status</th>
+              <th class="py-3 px-4" data-i18n="th_date">Data</th>
+              <th class="py-3 px-4 text-right" data-i18n="th_actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="orders-table-body" class="divide-y divide-slate-700/40"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- VISTA 2: CATÁLOGO DE PRODUTOS & SERVIÇOS -->
+    <section id="view-catalog" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-5">
+      <div class="border-b border-slate-700/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-box-open text-violet-400"></i> <span data-i18n="catalog_title">Catálogo de Produtos & Serviços</span>
+          </h2>
+          <p class="text-xs text-slate-400" data-i18n="catalog_subtitle">Cadastre itens recorrentes para preencher pedidos em 1 clique</p>
+        </div>
+        <button onclick="App.UI.openNewProductModal()" class="bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg transition flex items-center gap-2 self-start sm:self-auto">
+          <i class="fa-solid fa-plus"></i> <span data-i18n="btn_new_product">Novo Item no Catálogo</span>
+        </button>
+      </div>
+
+      <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- VISTA 3: DASHBOARD & ANALYTICS -->
+    <section id="view-analytics" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-5">
+      <div class="border-b border-slate-700/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-indigo-400"></i> <span data-i18n="analytics_title">Dashboard Analítico & Inteligência</span>
+          </h2>
+          <p class="text-xs text-slate-400" data-i18n="analytics_subtitle">Distribuição em tempo real de pagamentos e receita por produto</p>
+        </div>
+        <button onclick="App.UI.toggleGatoPixelModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2 self-start sm:self-auto">
+          <i class="fa-solid fa-cat"></i> <span data-i18n="btn_consult_ai">Consultar GatoPixel AI</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-slate-900/80 border border-slate-700 rounded-2xl p-4">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3" data-i18n="chart_status_title">Pedidos por Status</h3>
+          <div class="h-64 relative">
+            <canvas id="chart-status"></canvas>
+          </div>
         </div>
 
-        <div class="pt-3 flex justify-end gap-2">
-          <button type="button" onclick="App.UI.closeModal('modal-order')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold" data-i18n="btn_cancel">Cancelar</button>
-          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md" data-i18n="btn_save_order">Salvar Pedido</button>
+        <div class="bg-slate-900/80 border border-slate-700 rounded-2xl p-4">
+          <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3" data-i18n="chart_products_title">Faturamento por Produto</h3>
+          <div class="h-64 relative">
+            <canvas id="chart-products"></canvas>
+          </div>
         </div>
-      </form>'''
+      </div>
 
-new_order_modal_form = '''      <form onsubmit="App.Services.saveOrder(event)" class="space-y-3 text-xs">
+      <div id="analytics-insights" class="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-4 text-xs text-slate-200 leading-relaxed"></div>
+    </section>
+
+    <!-- VISTA 4: AUTO-REPARO DO SISTEMA -->
+    <section id="view-autorepair" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="border-b border-slate-700/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-emerald-400"></i> <span data-i18n="repair_title">Auto-Reparo e Integridade de Dados</span>
+          </h2>
+          <p class="text-xs text-slate-400" data-i18n="repair_subtitle">Valida esquemas de pedidos, quantidades, catálogo e chaves Pix</p>
+        </div>
+        <button onclick="App.Services.runManualDiagnostic()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2 self-start sm:self-auto">
+          <i class="fa-solid fa-rotate"></i> <span data-i18n="btn_run_diagnostic">Executar Diagnóstico</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+          <p class="text-slate-400 font-medium" data-i18n="repair_status_label">Status do Diagnóstico:</p>
+          <p class="text-emerald-400 font-bold text-sm mt-1 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> <span data-i18n="repair_status_ok">Sistema Saudável & Validado</span>
+          </p>
+        </div>
+        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
+          <p class="text-slate-400 font-medium" data-i18n="repair_fixes_label">Saneamentos Efetuados:</p>
+          <p id="repair-patch-count" class="text-white font-bold text-sm mt-1">0</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 rounded-xl border border-slate-700 p-4 font-mono text-[11px] text-slate-300 h-48 overflow-y-auto space-y-1" id="repair-console-log">
+        <div class="text-emerald-400">[SISTEMA] Monitor de integridade inicializado...</div>
+      </div>
+    </section>
+
+    <!-- VISTA 5: PAINEL DEV -->
+    <section id="view-dev" class="view-tab bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="border-b border-slate-700/60 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-code text-amber-400"></i> <span data-i18n="dev_title">Painel do Desenvolvedor</span>
+          </h2>
+          <p class="text-xs text-slate-400" data-i18n="dev_subtitle">Inspeção e edição direta do estado completo (Sessão Autenticada)</p>
+        </div>
+        <button onclick="App.Auth.logout()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="btn_dev_logout">Encerrar Sessão Dev</span>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <label for="dev-json-editor" class="text-xs font-semibold text-slate-300 block">Editor do Banco de Dados (JSON):</label>
+        <textarea id="dev-json-editor" class="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-3 rounded-xl border border-slate-700 h-56 focus:outline-none focus:border-indigo-500"></textarea>
+        
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="App.Services.saveDevJson()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar Alterações JSON
+          </button>
+          <button onclick="App.Services.injectMockOrder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-vial"></i> Injetar Pedido Teste
+          </button>
+          <button onclick="App.Services.resetDatabase()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-trash"></i> Resetar Banco de Dados
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ASSISTENTE IA FLUTUANTE GATOPIXEL -->
+  <div id="gatopixel-widget" class="fixed bottom-5 right-5 z-40">
+    <button onclick="App.UI.toggleGatoPixelModal()" aria-label="Abrir assistente GatoPixel AI" class="bg-indigo-600 hover:bg-indigo-500 text-white p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transition transform hover:scale-105 border border-indigo-400/30">
+      <div class="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-lg">
+        <i class="fa-solid fa-cat"></i>
+      </div>
+      <div class="text-left hidden sm:block">
+        <p class="text-xs font-bold leading-none">GatoPixel AI</p>
+        <p class="text-[10px] text-indigo-200 leading-tight mt-0.5" data-i18n="ai_speech_bubble">Miau! Precisa de ajuda com vendas?</p>
+      </div>
+    </button>
+  </div>
+
+  <!-- MODAL: CHAT DA IA GATOPIXEL -->
+  <div id="modal-gatopixel-ai" role="dialog" aria-modal="true" aria-labelledby="ai-modal-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-gatopixel-ai')">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col h-[520px]">
+      <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-lg">
+            <i class="fa-solid fa-cat"></i>
+          </div>
+          <div>
+            <h3 id="ai-modal-title" class="font-bold text-sm leading-tight">GatoPixel AI Copilot</h3>
+            <p class="text-[10px] text-indigo-300" data-i18n="ai_subtitle">Seu assistente inteligente de conversão e vendas</p>
+          </div>
+        </div>
+        <button onclick="App.UI.closeModal('modal-gatopixel-ai')" aria-label="Fechar chat da IA" class="text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="gatopixel-chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="flex gap-2.5 items-start">
+          <div class="w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xs shrink-0 mt-0.5">
+            <i class="fa-solid fa-cat"></i>
+          </div>
+          <div class="bg-slate-100 text-slate-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed" id="gatopixel-welcome-msg"></div>
+        </div>
+      </div>
+
+      <div class="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center gap-2 overflow-x-auto">
+        <button onclick="App.Services.askGatoPixel('analyze')" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-xl font-semibold text-[11px] whitespace-nowrap transition flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-simple"></i> <span data-i18n="ai_btn_analyze">Analisar Vendas</span>
+        </button>
+        <button onclick="App.Services.askGatoPixel('copy')" class="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-xl font-semibold text-[11px] whitespace-nowrap transition flex items-center gap-1.5">
+          <i class="fa-brands fa-whatsapp"></i> <span data-i18n="ai_btn_copy">Gerar Copy Pix</span>
+        </button>
+      </div>
+
+      <form onsubmit="App.Services.handleGatoPixelSubmit(event)" class="p-3 bg-white border-t border-slate-200 flex gap-2">
+        <input type="text" id="gatopixel-input" placeholder="Pergunte algo ao GatoPixel..." data-i18n-placeholder="ai_input_placeholder" class="flex-1 bg-slate-100 text-slate-800 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <button type="submit" aria-label="Enviar mensagem" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVO / EDITAR PEDIDO -->
+  <div id="modal-order" role="dialog" aria-modal="true" aria-labelledby="modal-order-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-order')">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 id="modal-order-title" class="font-bold text-slate-900 text-base">Novo Pedido Pix</h3>
+        <button onclick="App.UI.closeModal('modal-order')" aria-label="Fechar modal de pedido" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="App.Services.saveOrder(event)" class="space-y-3 text-xs">
         <input type="hidden" id="order-id">
         <datalist id="saved-customers-list"></datalist>
 
@@ -271,24 +604,27 @@ new_order_modal_form = '''      <form onsubmit="App.Services.saveOrder(event)" c
           <button type="button" onclick="App.UI.closeModal('modal-order')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold" data-i18n="btn_cancel">Cancelar</button>
           <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md" data-i18n="btn_save_order">Salvar Pedido</button>
         </div>
-      </form>'''
+      </form>
+    </div>
+  </div>
 
-assert old_order_modal_form in html
-html = html.replace(old_order_modal_form, new_order_modal_form, 1)
+  <!-- MODAL: NOVO / EDITAR PRODUTO DO CATÁLOGO -->
+  <div id="modal-product" role="dialog" aria-modal="true" aria-labelledby="modal-product-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-product')">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 id="modal-product-title" class="font-bold text-slate-900 text-base">Novo Item no Catálogo</h3>
+        <button onclick="App.UI.closeModal('modal-product')" aria-label="Fechar modal de produto" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
 
-# 6. Product Modal: add optional Stock Quantity field
-old_product_modal_fields = '''        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label for="product-category" class="font-semibold text-slate-700" data-i18n="label_category">Categoria:</label>
-            <input type="text" id="product-category" placeholder="Digital / Serviço" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-violet-500">
-          </div>
-          <div>
-            <label for="product-price" class="font-semibold text-slate-700" data-i18n="label_price">Preço Unitário Padrão (R$):</label>
-            <input type="number" step="0.01" min="0.01" id="product-price" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-violet-500">
-          </div>
-        </div>'''
-
-new_product_modal_fields = '''        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <form onsubmit="App.Services.saveProduct(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="product-id">
+        <div>
+          <label for="product-name" class="font-semibold text-slate-700" data-i18n="label_product_name">Nome do Produto / Serviço:</label>
+          <input type="text" id="product-name" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-violet-500">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label for="product-category" class="font-semibold text-slate-700" data-i18n="label_category">Categoria:</label>
             <input type="text" id="product-category" placeholder="Digital / Físico" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-violet-500">
@@ -301,22 +637,69 @@ new_product_modal_fields = '''        <div class="grid grid-cols-1 sm:grid-cols-
             <label for="product-stock" class="font-semibold text-slate-700" data-i18n="label_stock">Estoque (Opcional):</label>
             <input type="number" step="1" min="0" id="product-stock" placeholder="Ilimitado" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-violet-500">
           </div>
-        </div>'''
+        </div>
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="App.UI.closeModal('modal-product')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold" data-i18n="btn_cancel">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold shadow-md" data-i18n="btn_save">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-assert old_product_modal_fields in html
-html = html.replace(old_product_modal_fields, new_product_modal_fields, 1)
+  <!-- MODAL: EXIBIÇÃO DE QR CODE PIX -->
+  <div id="modal-pix" role="dialog" aria-modal="true" aria-labelledby="modal-pix-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-pix')">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 id="modal-pix-title" class="font-bold text-slate-900 text-sm" data-i18n="pix_modal_title">Cobrança Pix Dinâmica</h3>
+        <button onclick="App.UI.closePixModal()" aria-label="Fechar modal Pix" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
 
-# 7. Add Cash Closing / Monthly Report Modal right after #modal-receipt
-old_receipt_modal_end = '''      <div class="pt-2 flex gap-2 no-print">
+      <div class="py-2 flex flex-col items-center justify-center">
+        <div id="pix-qrcode-container" class="bg-white p-3 border rounded-2xl shadow-inner flex items-center justify-center min-h-[196px] min-w-[196px]"></div>
+        <p class="text-xs text-slate-500 mt-2" data-i18n="pix_scan_hint">Escaneie o QR Code no app do seu banco</p>
+        <p id="pix-modal-amount" class="text-lg font-extrabold text-indigo-600 mt-1">R$ 0,00</p>
+        <p id="pix-key-preview" class="text-[10px] text-slate-400 font-mono mt-0.5"></p>
+        <p id="pix-webhook-status" class="text-[11px] text-amber-600 font-semibold mt-2 flex items-center gap-1.5"></p>
+        <input type="hidden" id="pix-copia-cola-code">
+      </div>
+
+      <div class="space-y-2">
+        <button onclick="App.Services.copyPixCopiaECola()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 transition shadow-md">
+          <i class="fa-solid fa-copy"></i> <span data-i18n="btn_copy_pix">Copiar Pix Copia e Cola</span>
+        </button>
+        <button onclick="App.Services.sendOrderWhatsapp(App.State.currentPixOrderId)" class="w-full py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition">
+          <i class="fa-brands fa-whatsapp text-sm"></i> <span data-i18n="btn_send_whatsapp">Enviar Cobrança no WhatsApp</span>
+        </button>
+        <button onclick="App.Services.confirmManualPixReceipt(true)" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition shadow-md">
+          <i class="fa-solid fa-circle-check"></i> <span data-i18n="btn_confirm_manual_pix">Confirmar Recebimento Pix</span>
+        </button>
+        <button onclick="App.UI.closePixModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl" data-i18n="btn_close">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: COMPROVANTE / RECIBO IMPRIMÍVEL -->
+  <div id="modal-receipt" role="dialog" aria-modal="true" aria-labelledby="receipt-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-receipt')">
+    <div id="printable-receipt-card" class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-slate-800">
+      <div class="flex items-center justify-between border-b pb-3 no-print">
+        <h3 id="receipt-title" class="font-bold text-slate-900 text-sm" data-i18n="receipt_modal_title">Comprovante de Venda</h3>
+        <button onclick="App.UI.closeModal('modal-receipt')" aria-label="Fechar recibo" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="receipt-body-content" class="space-y-3 text-xs"></div>
+
+      <div class="pt-2 flex gap-2 no-print">
         <button onclick="window.print()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-md">
           <i class="fa-solid fa-print"></i> <span data-i18n="btn_print_receipt">Imprimir / Salvar PDF</span>
         </button>
         <button onclick="App.UI.closeModal('modal-receipt')" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl" data-i18n="btn_close">Fechar</button>
       </div>
     </div>
-  </div>'''
-
-new_receipt_and_report_modals = old_receipt_modal_end + '''
+  </div>
 
   <!-- MODAL: FECHAMENTO DE CAIXA / RELATÓRIO MENSAL EM PDF -->
   <div id="modal-cash-report" role="dialog" aria-modal="true" aria-labelledby="cash-report-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-cash-report')">
@@ -350,101 +733,572 @@ new_receipt_and_report_modals = old_receipt_modal_end + '''
         <button onclick="App.UI.closeModal('modal-cash-report')" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl" data-i18n="btn_close">Fechar</button>
       </div>
     </div>
-  </div>'''
+  </div>
 
-assert old_receipt_modal_end in html
-html = html.replace(old_receipt_modal_end, new_receipt_and_report_modals, 1)
+  <!-- MODAL: CONFIGURAÇÕES, IDIOMA & BACKUP -->
+  <div id="modal-pix-settings" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-pix-settings')">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 id="settings-modal-title" class="font-bold text-slate-900 text-base" data-i18n="settings_title">Configurações, Backup & Idioma</h3>
+        <button onclick="App.UI.closeModal('modal-pix-settings')" aria-label="Fechar configurações" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
 
-# 8. Add translations for new labels
-html = html.replace(
-    'btn_backup_export: "Baixar Backup",',
-    'btn_cash_report: "Fechamento",\n          cash_report_title: "Fechamento de Caixa & Relatório",\n          status_overdue: "⚠️ Vencidos",\n          label_discount: "Desconto:",\n          label_shipping: "Frete / Taxa (R$):",\n          label_due_date: "Vencimento (Opcional):",\n          label_stock: "Estoque (Opcional):",\n          btn_backup_export: "Baixar Backup",'
-)
-html = html.replace(
-    'btn_backup_export: "Download Backup",',
-    'btn_cash_report: "Cash Report",\n          cash_report_title: "Cash Closing & Sales Report",\n          status_overdue: "⚠️ Overdue",\n          label_discount: "Discount:",\n          label_shipping: "Shipping / Fee:",\n          label_due_date: "Due Date (Optional):",\n          label_stock: "Stock (Optional):",\n          btn_backup_export: "Download Backup",'
-)
-html = html.replace(
-    'btn_backup_export: "Descargar Respaldo",',
-    'btn_cash_report: "Cierre Caja",\n          cash_report_title: "Cierre de Caja e Informe",\n          status_overdue: "⚠️ Vencidos",\n          label_discount: "Descuento:",\n          label_shipping: "Envío / Tasa:",\n          label_due_date: "Vencimiento (Opcional):",\n          label_stock: "Stock (Opcional):",\n          btn_backup_export: "Descargar Respaldo",'
-)
+      <form onsubmit="App.Services.saveSettings(event)" class="space-y-3 text-xs">
+        <div>
+          <label for="setting-language-input" class="font-semibold text-slate-700" data-i18n="label_language">Idioma do Sistema:</label>
+          <select id="setting-language-input" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 font-medium">
+            <option value="pt">🇧🇷 Português (Brasil)</option>
+            <option value="en">🇺🇸 English</option>
+            <option value="es">🇪🇸 Español</option>
+          </select>
+        </div>
 
-# 9. Update sanitizeOrder, sanitizeProduct, isOrderOverdue helper
-old_sanitize_block = '''        sanitizeOrder(raw, fallbackId) {
-          const validStatuses = ["Pendente", "Parcial", "Aprovado", "Cancelado"];
+        <div>
+          <label for="pix-key-input" class="font-semibold text-slate-700" data-i18n="label_pix_key">Chave Pix (CPF, CNPJ, Celular, E-mail ou EVP):</label>
+          <input type="text" id="pix-key-input" oninput="App.UI.previewSanitizedPixKey()" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
+          <p id="pix-key-type-hint" class="text-[10px] text-indigo-600 font-medium mt-1"></p>
+        </div>
 
-          let items = [];
-          if (Array.isArray(raw?.items) && raw.items.length > 0) {
-            items = raw.items.map(it => {
-              const q = Math.max(1, parseInt(it?.quantity, 10) || 1);
-              const up = Math.max(0, Number(it?.unitPrice) || 0);
-              return {
-                product: String(it?.product || "Produto").trim(),
-                quantity: q,
-                unitPrice: Number(up.toFixed(2)),
-                subtotal: Number((q * up).toFixed(2))
-              };
-            });
-          } else {
-            let quantity = parseInt(raw?.quantity, 10);
-            if (!Number.isInteger(quantity) || quantity < 1) quantity = 1;
-            let unitPrice = Number(raw?.unitPrice);
-            let amount = Number(raw?.amount);
-            if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
-              unitPrice = Number.isFinite(amount) && amount > 0 ? Number((amount / quantity).toFixed(2)) : 0;
-            }
-            items = [{
-              product: String(raw?.product || "Produto").trim(),
-              quantity,
-              unitPrice: Number(unitPrice.toFixed(2)),
-              subtotal: Number((quantity * unitPrice).toFixed(2))
-            }];
-          }
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="pix-name-input" class="font-semibold text-slate-700" data-i18n="label_merchant_name">Nome do Recebedor:</label>
+            <input type="text" id="pix-name-input" maxlength="25" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
+          </div>
+          <div>
+            <label for="pix-city-input" class="font-semibold text-slate-700" data-i18n="label_merchant_city">Cidade do Beneficiário:</label>
+            <input type="text" id="pix-city-input" maxlength="15" required class="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800">
+          </div>
+        </div>
 
-          const totalQty = items.reduce((acc, it) => acc + it.quantity, 0);
-          const amount = Number(items.reduce((acc, it) => acc + it.subtotal, 0).toFixed(2));
-          const summaryProduct = items.length === 1
-            ? items[0].product
-            : `${items[0].product} (+${items.length - 1} ${items.length === 2 ? "item" : "itens"})`;
-          const summaryUnitPrice = items.length === 1 ? items[0].unitPrice : Number((amount / Math.max(1, totalQty)).toFixed(2));
+        <!-- BACKUP E RESTAURAÇÃO PARA USUÁRIOS -->
+        <div class="pt-3 border-t border-slate-200 space-y-2">
+          <p class="font-semibold text-slate-700" data-i18n="backup_section_title">Backup & Restauração de Dados (.JSON):</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="App.Services.exportFullBackup()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-download text-emerald-400"></i> <span data-i18n="btn_backup_export">Baixar Backup</span>
+            </button>
+            <label class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-semibold flex items-center justify-center gap-1.5 cursor-pointer border border-slate-300">
+              <i class="fa-solid fa-upload text-indigo-600"></i> <span data-i18n="btn_backup_import">Restaurar Backup</span>
+              <input type="file" id="backup-file-input" accept=".json,application/json" onchange="App.Services.importFullBackup(event)" class="hidden">
+            </label>
+          </div>
+        </div>
 
-          let paidAmount = Number(raw?.paidAmount);
-          if (!Number.isFinite(paidAmount) || paidAmount < 0) paidAmount = 0;
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="App.UI.closeModal('modal-pix-settings')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold" data-i18n="btn_cancel">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md" data-i18n="btn_save">Salvar Configurações</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-          let status = validStatuses.includes(raw?.status) ? raw.status : "Pendente";
-          if (status === "Aprovado" && paidAmount === 0 && amount > 0) {
-            paidAmount = amount;
-          }
+  <!-- MODAL: AUTENTICAÇÃO PAINEL DEV -->
+  <div id="modal-dev-auth" role="dialog" aria-modal="true" aria-labelledby="dev-auth-title" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4" onclick="App.UI.handleBackdropClick(event, 'modal-dev-auth')">
+    <div class="bg-white rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center space-y-4">
+      <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-xl mx-auto">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <div>
+        <h3 id="dev-auth-title" class="font-bold text-slate-900 text-base" data-i18n="dev_auth_title">Acesso de Desenvolvedor</h3>
+        <p class="text-xs text-slate-500 mt-1" data-i18n="dev_auth_subtitle">Validação via Servidor (PIN padrão: 0000)</p>
+        <p id="dev-lockout-msg" class="text-[11px] text-rose-600 font-semibold mt-1 hidden"></p>
+      </div>
 
-          return {
-            id: Number.isInteger(raw?.id) && raw.id > 0 ? raw.id : fallbackId,
-            customer: String(raw?.customer || "Cliente").trim(),
-            phone: String(raw?.phone || "").replace(/\\D/g, ""),
-            items,
-            product: summaryProduct,
-            quantity: totalQty,
-            unitPrice: summaryUnitPrice,
-            amount,
-            paidAmount,
-            status,
-            date: /^\\d{4}-\\d{2}-\\d{2}$/.test(raw?.date) ? raw.date : new Date().toISOString().split("T")[0]
-          };
+      <form onsubmit="App.Auth.login(event)" class="space-y-3">
+        <input type="password" id="dev-pin-input" maxlength="8" placeholder="••••" required aria-label="PIN de Desenvolvedor" class="w-full text-center text-lg font-mono tracking-widest bg-slate-100 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:border-amber-500">
+        <div class="flex gap-2">
+          <button type="button" onclick="App.UI.closeModal('modal-dev-auth')" class="w-1/2 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl" data-i18n="btn_cancel">Cancelar</button>
+          <button type="submit" id="dev-auth-submit" class="w-1/2 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" aria-live="polite" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      console.error("[GatoPixel Error]", { msg, url, line, col, error });
+      if (window.App && App.UI) {
+        App.UI.showToast(App.UI.t("toast_unexpected_error"), "error");
+      }
+      return false;
+    };
+
+    window.addEventListener("unhandledrejection", function(event) {
+      console.error("[GatoPixel Promise Rejection]", event.reason);
+    });
+
+    const App = {
+      State: {
+        orders: [],
+        products: [],
+        config: {
+          pixKey: "+5511999999999",
+          merchantName: "GatoPixel",
+          merchantCity: "SAO PAULO",
+          language: "pt"
+        },
+        activeTab: "sales",
+        devAuthenticated: false,
+        failedPinAttempts: 0,
+        pinLockoutUntil: 0,
+        currentPixOrderId: null,
+        webhookTimer: null,
+        patchCount: 0,
+        lastDeletedOrder: null,
+        lastWhatsappCopy: "",
+        charts: {
+          status: null,
+          products: null
+        }
+      },
+
+      Translations: {
+        pt: {
+          app_subtitle: "Sistema Autossustentável de Vendas Pix",
+          nav_sales: "Vendas & Pedidos",
+          nav_catalog: "Catálogo",
+          nav_dashboard: "Dashboard & IA",
+          nav_autorepair: "Auto-Reparo",
+          nav_dev: "Painel Dev",
+          btn_export: "Exportar",
+          btn_new_order: "Novo Pedido",
+          btn_new_product: "Novo Item no Catálogo",
+          btn_consult_ai: "Consultar GatoPixel AI",
+          btn_run_diagnostic: "Executar Diagnóstico",
+          btn_dev_logout: "Encerrar Sessão Dev",
+          btn_cancel: "Cancelar",
+          btn_save: "Salvar",
+          btn_save_order: "Salvar Pedido",
+          btn_close: "Fechar",
+          btn_undo: "Desfazer",
+          btn_copy_pix: "Copiar Pix Copia e Cola",
+          btn_send_whatsapp: "Enviar Cobrança no WhatsApp",
+          btn_confirm_manual_pix: "Confirmar Recebimento Pix",
+          btn_print_receipt: "Imprimir / Salvar PDF",
+          btn_cash_report: "Fechamento",
+          cash_report_title: "Fechamento de Caixa & Relatório",
+          status_overdue: "⚠️ Vencidos",
+          label_discount: "Desconto:",
+          label_shipping: "Frete / Taxa (R$):",
+          label_due_date: "Vencimento (Opcional):",
+          label_stock: "Estoque (Opcional):",
+          btn_backup_export: "Baixar Backup",
+          btn_backup_import: "Restaurar Backup",
+          kpi_revenue: "Faturamento Recebido",
+          kpi_receivable: "Falta Receber",
+          receivable_panel_title: "Detalhamento a Receber (Saldo em Aberto)",
+          kpi_confirmed: "Receita Confirmada",
+          kpi_total_orders: "Total de Pedidos",
+          kpi_registered: "Registrados no Sistema",
+          kpi_conversion: "Conversão Pix",
+          kpi_approved: "Pagamentos Aprovados",
+          kpi_avg_ticket: "Ticket Médio",
+          kpi_avg_client: "Valor Médio por Cliente",
+          table_title: "Lista de Vendas & QR Codes Pix",
+          table_subtitle: "Gerencie status, cobranças WhatsApp, recibos e QR Codes Pix",
+          period_all: "Todo o Período",
+          period_today: "Hoje",
+          period_7days: "Últimos 7 dias",
+          period_month: "Este Mês",
+          status_all: "Todos os Status",
+          status_approved: "Aprovados",
+          status_pending: "Pendentes",
+          status_partial: "Parciais",
+          status_canceled: "Cancelados",
+          badge_Aprovado: "Aprovado",
+          badge_Pendente: "Pendente",
+          badge_Parcial: "Parcial",
+          badge_Cancelado: "Cancelado",
+          sort_newest: "Mais Recentes",
+          sort_oldest: "Mais Antigos",
+          sort_highest: "Maior Valor",
+          sort_lowest: "Menor Valor",
+          search_placeholder: "Buscar cliente ou produto...",
+          th_customer: "Cliente",
+          th_product_qty: "Produto / Qtd",
+          th_total_paid: "Total / Pago",
+          th_status: "Status",
+          th_date: "Data",
+          th_actions: "Ações",
+          unit_short: "Unit.",
+          empty_orders: "Nenhum pedido encontrado para os filtros atuais.",
+          catalog_title: "Catálogo de Produtos & Serviços",
+          catalog_subtitle: "Cadastre itens recorrentes para preencher pedidos em 1 clique",
+          empty_catalog: "Nenhum item cadastrado no catálogo.",
+          analytics_title: "Dashboard Analítico & Inteligência",
+          analytics_subtitle: "Distribuição em tempo real de pagamentos e receita por produto",
+          chart_status_title: "Pedidos por Status",
+          chart_products_title: "Faturamento por Produto",
+          repair_title: "Auto-Reparo e Integridade de Dados",
+          repair_subtitle: "Valida esquemas de pedidos, quantidades, catálogo e chaves Pix",
+          repair_status_label: "Status do Diagnóstico:",
+          repair_status_ok: "Sistema Saudável & Validado",
+          repair_fixes_label: "Saneamentos Efetuados:",
+          dev_title: "Painel do Desenvolvedor",
+          dev_subtitle: "Inspeção e edição direta do estado completo (Sessão Autenticada)",
+          dev_auth_title: "Acesso de Desenvolvedor",
+          dev_auth_subtitle: "Validação via Servidor (PIN padrão: 0000)",
+          settings_title: "Configurações, Backup & Idioma",
+          label_language: "Idioma do Sistema",
+          label_pix_key: "Chave Pix (CPF, CNPJ, Celular, E-mail ou EVP)",
+          label_merchant_name: "Nome do Recebedor",
+          label_merchant_city: "Cidade do Beneficiário",
+          backup_section_title: "Backup & Restauração de Dados (.JSON):",
+          label_quick_catalog: "Preencher do Catálogo (Opcional):",
+          label_order_items: "Itens do Pedido:",
+          btn_add_item: "Adicionar Produto",
+          catalog_select_default: "-- Selecionar item pronto --",
+          label_customer: "Nome do Cliente:",
+          label_whatsapp: "WhatsApp (Opcional):",
+          label_product: "Produto ou Serviço:",
+          label_quantity: "Quantidade:",
+          label_unit_price: "Valor Unitário (R$):",
+          label_total_amount: "Valor Total (R$):",
+          label_paid_amount: "Valor Já Pago (R$):",
+          label_remaining_balance: "Saldo Restante a Cobrar:",
+          label_status: "Status do Pagamento:",
+          label_product_name: "Nome do Produto / Serviço:",
+          label_category: "Categoria:",
+          label_price: "Preço Unitário Padrão (R$):",
+          pix_modal_title: "Cobrança Pix Dinâmica",
+          pix_scan_hint: "Escaneie o QR Code no app do seu banco",
+          receipt_modal_title: "Comprovante de Venda",
+          ai_speech_bubble: "Miau! Precisa de ajuda com vendas?",
+          ai_subtitle: "Seu assistente inteligente de conversão e vendas",
+          ai_welcome: "Olá! Eu sou o <strong>GatoPixel</strong>! 🐾 Posso analisar suas vendas atuais ou gerar mensagens de cobrança para WhatsApp em 1 clique!",
+          ai_btn_analyze: "Analisar Vendas",
+          ai_btn_copy: "Gerar Copy Pix",
+          ai_input_placeholder: "Pergunte algo ao GatoPixel...",
+          toast_saved: "Configurações salvas com sucesso!",
+          toast_order_saved: "Pedido salvo com sucesso!",
+          toast_order_deleted: "Pedido excluído.",
+          toast_order_restored: "Pedido restaurado!",
+          toast_product_saved: "Item salvo no catálogo!",
+          toast_product_deleted: "Item removido do catálogo.",
+          toast_pix_copied: "Código Pix Copia e Cola copiado!",
+          toast_backup_exported: "Backup JSON exportado com sucesso!",
+          toast_backup_restored: "Backup restaurado com sucesso!",
+          toast_backup_invalid: "Arquivo de backup JSON inválido.",
+          toast_unexpected_error: "Ocorreu um erro inesperado. Verifique o console.",
+          flag: "🇧🇷"
+        },
+        en: {
+          app_subtitle: "Self-Sustaining Pix Sales System",
+          nav_sales: "Sales & Orders",
+          nav_catalog: "Catalog",
+          nav_dashboard: "Dashboard & AI",
+          nav_autorepair: "Auto-Repair",
+          nav_dev: "Dev Panel",
+          btn_export: "Export",
+          btn_new_order: "New Order",
+          btn_new_product: "New Catalog Item",
+          btn_consult_ai: "Ask GatoPixel AI",
+          btn_run_diagnostic: "Run Diagnostic",
+          btn_dev_logout: "Log Out Dev",
+          btn_cancel: "Cancel",
+          btn_save: "Save",
+          btn_save_order: "Save Order",
+          btn_close: "Close",
+          btn_undo: "Undo",
+          btn_copy_pix: "Copy Pix Code",
+          btn_send_whatsapp: "Send Charge on WhatsApp",
+          btn_confirm_manual_pix: "Confirm Pix Receipt",
+          btn_print_receipt: "Print / Save PDF",
+          btn_cash_report: "Cash Report",
+          cash_report_title: "Cash Closing & Sales Report",
+          status_overdue: "⚠️ Overdue",
+          label_discount: "Discount:",
+          label_shipping: "Shipping / Fee:",
+          label_due_date: "Due Date (Optional):",
+          label_stock: "Stock (Optional):",
+          btn_backup_export: "Download Backup",
+          btn_backup_import: "Restore Backup",
+          kpi_revenue: "Received Revenue",
+          kpi_receivable: "To Receive",
+          receivable_panel_title: "Receivable Breakdown (Open Balance)",
+          kpi_confirmed: "Confirmed Revenue",
+          kpi_total_orders: "Total Orders",
+          kpi_registered: "Registered in System",
+          kpi_conversion: "Pix Conversion",
+          kpi_approved: "Approved Payments",
+          kpi_avg_ticket: "Average Ticket",
+          kpi_avg_client: "Average Value per Client",
+          table_title: "Sales List & Pix QR Codes",
+          table_subtitle: "Manage status, WhatsApp billing, receipts, and Pix QR Codes",
+          period_all: "All Time",
+          period_today: "Today",
+          period_7days: "Last 7 Days",
+          period_month: "This Month",
+          status_all: "All Statuses",
+          status_approved: "Approved",
+          status_pending: "Pending",
+          status_partial: "Partial",
+          status_canceled: "Canceled",
+          badge_Aprovado: "Approved",
+          badge_Pendente: "Pending",
+          badge_Parcial: "Partial",
+          badge_Cancelado: "Canceled",
+          sort_newest: "Newest First",
+          sort_oldest: "Oldest First",
+          sort_highest: "Highest Value",
+          sort_lowest: "Lowest Value",
+          search_placeholder: "Search customer or product...",
+          th_customer: "Customer",
+          th_product_qty: "Product / Qty",
+          th_total_paid: "Total / Paid",
+          th_status: "Status",
+          th_date: "Date",
+          th_actions: "Actions",
+          unit_short: "Unit",
+          empty_orders: "No orders found for the current filters.",
+          catalog_title: "Product & Service Catalog",
+          catalog_subtitle: "Register recurring items to auto-fill orders in 1 click",
+          empty_catalog: "No items registered in the catalog.",
+          analytics_title: "Analytics Dashboard & Intelligence",
+          analytics_subtitle: "Real-time breakdown of payments and revenue by product",
+          chart_status_title: "Orders by Status",
+          chart_products_title: "Revenue by Product",
+          repair_title: "System Auto-Repair & Data Integrity",
+          repair_subtitle: "Validates order schemas, quantities, catalog items, and Pix keys",
+          repair_status_label: "Diagnostic Status:",
+          repair_status_ok: "System Healthy & Validated",
+          repair_fixes_label: "Sanitizations Applied:",
+          dev_title: "Developer Panel",
+          dev_subtitle: "Direct inspection and editing of full state (Authenticated Session)",
+          dev_auth_title: "Developer Access",
+          dev_auth_subtitle: "Server Validation (Default PIN: 0000)",
+          settings_title: "Settings, Backup & Language",
+          label_language: "System Language",
+          label_pix_key: "Pix Key (CPF, CNPJ, Phone, Email or EVP)",
+          label_merchant_name: "Receiver Name",
+          label_merchant_city: "City",
+          backup_section_title: "Data Backup & Restore (.JSON):",
+          label_quick_catalog: "Fill from Catalog (Optional):",
+          label_order_items: "Order Items:",
+          btn_add_item: "Add Product",
+          catalog_select_default: "-- Select catalog item --",
+          label_customer: "Customer Name:",
+          label_whatsapp: "WhatsApp (Optional):",
+          label_product: "Product or Service:",
+          label_quantity: "Quantity:",
+          label_unit_price: "Unit Price:",
+          label_total_amount: "Total Amount:",
+          label_paid_amount: "Amount Paid:",
+          label_remaining_balance: "Remaining Balance:",
+          label_status: "Payment Status:",
+          label_product_name: "Product / Service Name:",
+          label_category: "Category:",
+          label_price: "Default Unit Price:",
+          pix_modal_title: "Dynamic Pix Charge",
+          pix_scan_hint: "Scan the QR Code in your banking app",
+          receipt_modal_title: "Sales Receipt",
+          ai_speech_bubble: "Meow! Need help with sales?",
+          ai_subtitle: "Your intelligent conversion & sales assistant",
+          ai_welcome: "Hello! I am <strong>GatoPixel</strong>! 🐾 I can analyze your sales or generate WhatsApp billing copy in 1 click!",
+          ai_btn_analyze: "Analyze Sales",
+          ai_btn_copy: "Generate Pix Copy",
+          ai_input_placeholder: "Ask GatoPixel anything...",
+          toast_saved: "Settings saved successfully!",
+          toast_order_saved: "Order saved successfully!",
+          toast_order_deleted: "Order deleted.",
+          toast_order_restored: "Order restored!",
+          toast_product_saved: "Item saved to catalog!",
+          toast_product_deleted: "Item removed from catalog.",
+          toast_pix_copied: "Pix code copied to clipboard!",
+          toast_backup_exported: "JSON backup exported!",
+          toast_backup_restored: "Backup restored successfully!",
+          toast_backup_invalid: "Invalid JSON backup file.",
+          toast_unexpected_error: "An unexpected error occurred. Check console.",
+          flag: "🇺🇸"
+        },
+        es: {
+          app_subtitle: "Sistema Autosustentable de Ventas Pix",
+          nav_sales: "Ventas y Pedidos",
+          nav_catalog: "Catálogo",
+          nav_dashboard: "Panel e IA",
+          nav_autorepair: "Auto-Reparación",
+          nav_dev: "Panel Dev",
+          btn_export: "Exportar",
+          btn_new_order: "Nuevo Pedido",
+          btn_new_product: "Nuevo Ítem",
+          btn_consult_ai: "Consultar GatoPixel AI",
+          btn_run_diagnostic: "Ejecutar Diagnóstico",
+          btn_dev_logout: "Cerrar Sesión Dev",
+          btn_cancel: "Cancelar",
+          btn_save: "Guardar",
+          btn_save_order: "Guardar Pedido",
+          btn_close: "Cerrar",
+          btn_undo: "Deshacer",
+          btn_copy_pix: "Copiar Código Pix",
+          btn_send_whatsapp: "Enviar Cobro por WhatsApp",
+          btn_confirm_manual_pix: "Confirmar Recepción Pix",
+          btn_print_receipt: "Imprimir / Guardar PDF",
+          btn_cash_report: "Cierre Caja",
+          cash_report_title: "Cierre de Caja e Informe",
+          status_overdue: "⚠️ Vencidos",
+          label_discount: "Descuento:",
+          label_shipping: "Envío / Tasa:",
+          label_due_date: "Vencimiento (Opcional):",
+          label_stock: "Stock (Opcional):",
+          btn_backup_export: "Descargar Respaldo",
+          btn_backup_import: "Restaurar Respaldo",
+          kpi_revenue: "Facturación Recibida",
+          kpi_receivable: "Falta Cobrar",
+          receivable_panel_title: "Detalle por Cobrar (Saldo Pendiente)",
+          kpi_confirmed: "Ingresos Confirmados",
+          kpi_total_orders: "Total de Pedidos",
+          kpi_registered: "Registrados en el Sistema",
+          kpi_conversion: "Conversión Pix",
+          kpi_approved: "Pagos Aprobados",
+          kpi_avg_ticket: "Ticket Medio",
+          kpi_avg_client: "Valor Promedio por Cliente",
+          table_title: "Lista de Ventas y Códigos QR Pix",
+          table_subtitle: "Gestione estado, cobros WhatsApp, recibos y códigos QR Pix",
+          period_all: "Todo el Período",
+          period_today: "Hoy",
+          period_7days: "Últimos 7 días",
+          period_month: "Este Mes",
+          status_all: "Todos los Estados",
+          status_approved: "Aprobados",
+          status_pending: "Pendientes",
+          status_partial: "Parciales",
+          status_canceled: "Cancelados",
+          badge_Aprovado: "Aprobado",
+          badge_Pendente: "Pendiente",
+          badge_Parcial: "Parcial",
+          badge_Cancelado: "Cancelado",
+          sort_newest: "Más Recientes",
+          sort_oldest: "Más Antiguos",
+          sort_highest: "Mayor Valor",
+          sort_lowest: "Menor Valor",
+          search_placeholder: "Buscar cliente o producto...",
+          th_customer: "Cliente",
+          th_product_qty: "Producto / Cant.",
+          th_total_paid: "Total / Pagado",
+          th_status: "Estado",
+          th_date: "Fecha",
+          th_actions: "Acciones",
+          unit_short: "Unit.",
+          empty_orders: "No se encontraron pedidos para los filtros actuales.",
+          catalog_title: "Catálogo de Productos y Servicios",
+          catalog_subtitle: "Registre ítems recurrentes para completar pedidos en 1 clic",
+          empty_catalog: "No hay ítems registrados en el catálogo.",
+          analytics_title: "Panel Analítico e Inteligencia",
+          analytics_subtitle: "Distribución en tiempo real de pagos e ingresos por producto",
+          chart_status_title: "Pedidos por Estado",
+          chart_products_title: "Facturación por Producto",
+          repair_title: "Auto-Reparación e Integridad de Datos",
+          repair_subtitle: "Valida esquemas de pedidos, cantidades, catálogo y claves Pix",
+          repair_status_label: "Estado del Diagnóstico:",
+          repair_status_ok: "Sistema Saludable y Validado",
+          repair_fixes_label: "Saneamientos Realizados:",
+          dev_title: "Panel del Desarrollador",
+          dev_subtitle: "Inspección y edición directa del estado completo (Sesión Autenticada)",
+          dev_auth_title: "Acceso de Desarrollador",
+          dev_auth_subtitle: "Validación vía Servidor (PIN predeterminado: 0000)",
+          settings_title: "Configuración, Respaldo e Idioma",
+          label_language: "Idioma del Sistema",
+          label_pix_key: "Clave Pix (CPF, CNPJ, Teléfono, Correo o EVP)",
+          label_merchant_name: "Nombre del Beneficiario",
+          label_merchant_city: "Ciudad",
+          backup_section_title: "Respaldo y Restauración de Datos (.JSON):",
+          label_quick_catalog: "Rellenar desde Catálogo (Opcional):",
+          label_order_items: "Ítems del Pedido:",
+          btn_add_item: "Agregar Producto",
+          catalog_select_default: "-- Seleccionar ítem del catálogo --",
+          label_customer: "Nombre del Cliente:",
+          label_whatsapp: "WhatsApp (Opcional):",
+          label_product: "Producto o Servicio:",
+          label_quantity: "Cantidad:",
+          label_unit_price: "Precio Unitario:",
+          label_total_amount: "Valor Total:",
+          label_paid_amount: "Valor Pagado:",
+          label_remaining_balance: "Saldo Restante:",
+          label_status: "Estado del Pago:",
+          label_product_name: "Nombre del Producto / Servicio:",
+          label_category: "Categoría:",
+          label_price: "Precio Unitario Predeterminado:",
+          pix_modal_title: "Cobro Pix Dinámico",
+          pix_scan_hint: "Escanee el código QR en su app bancaria",
+          receipt_modal_title: "Comprobante de Venta",
+          ai_speech_bubble: "¡Miau! ¿Necesitas ayuda con las ventas?",
+          ai_subtitle: "Tu asistente inteligente de ventas y conversión",
+          ai_welcome: "¡Hola! Soy <strong>GatoPixel</strong>! 🐾 Puedo analizar tus ventas o generar mensajes para WhatsApp en 1 clic.",
+          ai_btn_analyze: "Analizar Ventas",
+          ai_btn_copy: "Generar Copy Pix",
+          ai_input_placeholder: "Pregúntale algo a GatoPixel...",
+          toast_saved: "¡Ajustes guardados con éxito!",
+          toast_order_saved: "¡Pedido guardado con éxito!",
+          toast_order_deleted: "Pedido eliminado.",
+          toast_order_restored: "¡Pedido restaurado!",
+          toast_product_saved: "¡Ítem guardado en el catálogo!",
+          toast_product_deleted: "Ítem eliminado del catálogo.",
+          toast_pix_copied: "¡Código Pix copiado!",
+          toast_backup_exported: "¡Respaldo JSON exportado!",
+          toast_backup_restored: "¡Respaldo restaurado con éxito!",
+          toast_backup_invalid: "Archivo de respaldo JSON inválido.",
+          toast_unexpected_error: "Ocurrió un error inesperado. Revise la consola.",
+          flag: "🇪🇸"
+        }
+      },
+
+      Utils: {
+        escapeHtml(str) {
+          return String(str ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
         },
 
-        sanitizeProduct(raw, fallbackId) {
-          let price = Number(raw?.price);
-          if (!Number.isFinite(price) || price < 0) price = 0;
-          return {
-            id: Number.isInteger(raw?.id) && raw.id > 0 ? raw.id : fallbackId,
-            name: String(raw?.name || "Item").trim(),
-            category: String(raw?.category || "Geral").trim(),
-            price
-          };
-        },'''
+        formatCurrency(value) {
+          const num = Number.isFinite(Number(value)) ? Number(value) : 0;
+          return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        },
 
-new_sanitize_block = '''        isOrderOverdue(order) {
+        sanitizePixKey(rawKey) {
+          const key = String(rawKey || "").trim();
+          if (!key) return { clean: "", type: "Vazia" };
+
+          if (key.includes("@")) {
+            return { clean: key.toLowerCase(), type: "E-mail" };
+          }
+
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) {
+            return { clean: key.toLowerCase(), type: "Chave Aleatória (EVP)" };
+          }
+
+          if (key.startsWith("+")) {
+            const digits = key.replace(/\D/g, "");
+            return { clean: `+${digits}`, type: "Telefone (+55)" };
+          }
+
+          const digits = key.replace(/\D/g, "");
+
+          if (digits.length === 14) {
+            return { clean: digits, type: "CNPJ" };
+          }
+
+          if (digits.length === 10 || (digits.length === 11 && /[()]/.test(key))) {
+            return { clean: `+55${digits}`, type: "Telefone (+55)" };
+          }
+
+          if (digits.length === 11) {
+            return { clean: digits, type: "CPF" };
+          }
+
+          return { clean: key, type: "Personalizada" };
+        },
+
+        isOrderOverdue(order) {
           if (!order || order.status === "Aprovado" || order.status === "Cancelado") return false;
-          if (!order.dueDate || !/^\\d{4}-\\d{2}-\\d{2}$/.test(order.dueDate)) return false;
+          if (!order.dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(order.dueDate)) return false;
           const remaining = Math.max(0, Number((order.amount - order.paidAmount).toFixed(2)));
           if (remaining <= 0) return false;
           const todayStr = new Date().toISOString().split("T")[0];
@@ -508,7 +1362,7 @@ new_sanitize_block = '''        isOrderOverdue(order) {
           return {
             id: Number.isInteger(raw?.id) && raw.id > 0 ? raw.id : fallbackId,
             customer: String(raw?.customer || "Cliente").trim(),
-            phone: String(raw?.phone || "").replace(/\\D/g, ""),
+            phone: String(raw?.phone || "").replace(/\D/g, ""),
             items,
             product: summaryProduct,
             quantity: totalQty,
@@ -521,9 +1375,9 @@ new_sanitize_block = '''        isOrderOverdue(order) {
             amount,
             paidAmount,
             status,
-            dueDate: /^\\d{4}-\\d{2}-\\d{2}$/.test(raw?.dueDate) ? raw.dueDate : "",
+            dueDate: /^\d{4}-\d{2}-\d{2}$/.test(raw?.dueDate) ? raw.dueDate : "",
             stockDeducted: Boolean(raw?.stockDeducted),
-            date: /^\\d{4}-\\d{2}-\\d{2}$/.test(raw?.date) ? raw.date : new Date().toISOString().split("T")[0]
+            date: /^\d{4}-\d{2}-\d{2}$/.test(raw?.date) ? raw.date : new Date().toISOString().split("T")[0]
           };
         },
 
@@ -539,93 +1393,225 @@ new_sanitize_block = '''        isOrderOverdue(order) {
             price,
             stock
           };
-        },'''
+        },
 
-assert old_sanitize_block in html
-html = html.replace(old_sanitize_block, new_sanitize_block, 1)
+        playSuccessSound() {
+          try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+          } catch (_) {}
+        }
+      },
 
-# 10. Update saveOrder & saveProduct to handle discount, shipping, dueDate, and automatic stock deduction
-old_save_order_fn = '''        async saveOrder(event) {
+      API: {
+        KEYS: {
+          ORDERS: "gatopixel_orders_v4",
+          PRODUCTS: "gatopixel_products_v4",
+          CONFIG: "gatopixel_config_v4"
+        },
+
+        getDefaultOrders() {
+          const today = new Date().toISOString().split("T")[0];
+          return [
+            { id: 1, customer: "João Silva", phone: "11988887777", product: "GatoPixel Sales Engine", quantity: 1, unitPrice: 149.90, amount: 149.90, paidAmount: 149.90, status: "Aprovado", date: today },
+            { id: 2, customer: "Maria Oliveira", phone: "11977776666", product: "Consultoria Premium", quantity: 2, unitPrice: 149.50, amount: 299.00, paidAmount: 100.00, status: "Parcial", date: today },
+            { id: 3, customer: "Carlos Souza", phone: "", product: "Pack Automação WhatsApp", quantity: 3, unitPrice: 29.90, amount: 89.70, paidAmount: 0.00, status: "Pendente", date: today }
+          ];
+        },
+
+        getDefaultProducts() {
+          return [
+            { id: 1, name: "GatoPixel Sales Engine", category: "Software", price: 149.90 },
+            { id: 2, name: "Consultoria Premium", category: "Serviço", price: 149.50 },
+            { id: 3, name: "Pack Automação WhatsApp", category: "Digital", price: 29.90 }
+          ];
+        },
+
+        async fetchOrders() {
+          await new Promise(r => setTimeout(r, 80));
+          try {
+            const raw = localStorage.getItem(this.KEYS.ORDERS) || localStorage.getItem("gatopixel_orders_v3") || localStorage.getItem("gatopixel_orders_v2");
+            if (!raw) {
+              const seed = this.getDefaultOrders();
+              localStorage.setItem(this.KEYS.ORDERS, JSON.stringify(seed));
+              return seed;
+            }
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : this.getDefaultOrders();
+          } catch (_) {
+            return this.getDefaultOrders();
+          }
+        },
+
+        async persistOrders(orders) {
+          localStorage.setItem(this.KEYS.ORDERS, JSON.stringify(orders));
+          return orders;
+        },
+
+        async fetchProducts() {
+          try {
+            const raw = localStorage.getItem(this.KEYS.PRODUCTS) || localStorage.getItem("gatopixel_products_v3");
+            if (!raw) {
+              const seed = this.getDefaultProducts();
+              localStorage.setItem(this.KEYS.PRODUCTS, JSON.stringify(seed));
+              return seed;
+            }
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : this.getDefaultProducts();
+          } catch (_) {
+            return this.getDefaultProducts();
+          }
+        },
+
+        async persistProducts(products) {
+          localStorage.setItem(this.KEYS.PRODUCTS, JSON.stringify(products));
+          return products;
+        },
+
+        async fetchConfig() {
+          try {
+            const raw = localStorage.getItem(this.KEYS.CONFIG) || localStorage.getItem("gatopixel_config_v3") || localStorage.getItem("gatopixel_config_v2");
+            return raw ? { ...App.State.config, ...JSON.parse(raw) } : App.State.config;
+          } catch (_) {
+            return App.State.config;
+          }
+        },
+
+        async persistConfig(config) {
+          localStorage.setItem(this.KEYS.CONFIG, JSON.stringify(config));
+          return config;
+        },
+
+        async verifyPinOnServer(pin) {
+          await new Promise(r => setTimeout(r, 180));
+          const expectedHash = "9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0"; // SHA-256("0000")
+          if (window.crypto && window.crypto.subtle) {
+            const msgBuffer = new TextEncoder().encode(pin);
+            const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+            const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+            return hashHex === expectedHash;
+          }
+          return pin === "0000";
+        }
+      },
+
+      Auth: {
+        async login(event) {
           if (event) event.preventDefault();
-          const idVal = document.getElementById("order-id").value;
-          const customer = document.getElementById("order-customer").value.trim();
-          const phone = document.getElementById("order-phone").value.replace(/\\D/g, "");
-          const paidRaw = parseFloat(document.getElementById("order-paid").value);
-          const paidAmount = Number.isFinite(paidRaw) && paidRaw >= 0 ? paidRaw : 0;
-          let status = document.getElementById("order-status").value;
+          const now = Date.now();
+          const lockMsg = document.getElementById("dev-lockout-msg");
 
-          const rows = Array.from(document.querySelectorAll(".order-item-row"));
-          const items = [];
-          for (const row of rows) {
-            const prod = row.querySelector(".item-product-input").value.trim();
-            const qty = Math.max(1, parseInt(row.querySelector(".item-qty-input").value, 10) || 1);
-            const unit = parseFloat(row.querySelector(".item-price-input").value);
-            if (prod && Number.isFinite(unit) && unit > 0) {
-              items.push({
-                product: prod,
-                quantity: qty,
-                unitPrice: Number(unit.toFixed(2)),
-                subtotal: Number((qty * unit).toFixed(2))
-              });
-            }
+          if (App.State.pinLockoutUntil > now) {
+            const secs = Math.ceil((App.State.pinLockoutUntil - now) / 1000);
+            lockMsg.textContent = `Bloqueado temporariamente. Tente novamente em ${secs}s.`;
+            lockMsg.classList.remove("hidden");
+            return;
           }
 
-          if (!customer || items.length === 0) return;
+          const pin = document.getElementById("dev-pin-input").value.trim();
+          const isValid = await App.API.verifyPinOnServer(pin);
 
-          const amount = Number(items.reduce((acc, it) => acc + it.subtotal, 0).toFixed(2));
-          const totalQty = items.reduce((acc, it) => acc + it.quantity, 0);
-          const summaryProduct = items.length === 1
-            ? items[0].product
-            : `${items[0].product} (+${items.length - 1} ${items.length === 2 ? "item" : "itens"})`;
-          const summaryUnitPrice = items.length === 1 ? items[0].unitPrice : Number((amount / Math.max(1, totalQty)).toFixed(2));
-
-          if (paidAmount >= amount) {
-            status = "Aprovado";
-          } else if (paidAmount > 0 && paidAmount < amount && status === "Pendente") {
-            status = "Parcial";
-          }
-
-          if (idVal) {
-            const id = parseInt(idVal, 10);
-            const idx = App.State.orders.findIndex(o => o.id === id);
-            if (idx !== -1) {
-              App.State.orders[idx] = {
-                ...App.State.orders[idx],
-                customer,
-                phone,
-                items,
-                product: summaryProduct,
-                quantity: totalQty,
-                unitPrice: summaryUnitPrice,
-                amount,
-                paidAmount,
-                status
-              };
-            }
+          if (isValid) {
+            App.State.devAuthenticated = true;
+            App.State.failedPinAttempts = 0;
+            lockMsg.classList.add("hidden");
+            document.getElementById("dev-pin-input").value = "";
+            App.UI.closeModal("modal-dev-auth");
+            App.UI.switchTab("dev");
+            App.UI.showToast("Sessão Dev autenticada!", "success");
           } else {
-            const nextId = App.State.orders.length ? Math.max(...App.State.orders.map(o => o.id)) + 1 : 1;
-            App.State.orders.push({
-              id: nextId,
-              customer,
-              phone,
-              items,
-              product: summaryProduct,
-              quantity: totalQty,
-              unitPrice: summaryUnitPrice,
-              amount,
-              paidAmount,
-              status,
-              date: new Date().toISOString().split("T")[0]
-            });
+            App.State.failedPinAttempts++;
+            if (App.State.failedPinAttempts >= 3) {
+              App.State.pinLockoutUntil = Date.now() + 30000;
+              App.State.failedPinAttempts = 0;
+              lockMsg.textContent = "3 tentativas falhas. Bloqueado por 30 segundos.";
+            } else {
+              lockMsg.textContent = `PIN incorreto (${App.State.failedPinAttempts}/3 tentativas).`;
+            }
+            lockMsg.classList.remove("hidden");
           }
+        },
+
+        logout() {
+          App.State.devAuthenticated = false;
+          App.UI.switchTab("sales");
+          App.UI.showToast("Sessão de desenvolvedor encerrada.", "info");
+        }
+      },
+
+      Services: {
+        async init() {
+          App.State.config = await App.API.fetchConfig();
+          const rawOrders = await App.API.fetchOrders();
+          const rawProducts = await App.API.fetchProducts();
+
+          App.State.orders = rawOrders.map((o, idx) => App.Utils.sanitizeOrder(o, idx + 1));
+          App.State.products = rawProducts.map((p, idx) => App.Utils.sanitizeProduct(p, idx + 1));
 
           await App.API.persistOrders(App.State.orders);
-          App.UI.closeModal("modal-order");
-          App.UI.refreshAll();
-          App.UI.showToast(App.UI.t("toast_order_saved"), "success");
-        },'''
+          await App.API.persistProducts(App.State.products);
 
-new_save_order_fn = '''        async adjustStockForOrder(order, direction = -1) {
+          this.initPWA();
+          App.UI.applyTranslations();
+          App.UI.refreshAll();
+          this.logRepair("Sistema inicializado e validado com sucesso.");
+        },
+
+        initPWA() {
+          const updateConnBadge = () => {
+            const badge = document.getElementById("connection-badge");
+            if (!badge) return;
+            if (navigator.onLine) {
+              badge.textContent = "Online";
+              badge.className = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-semibold";
+            } else {
+              badge.textContent = "Offline";
+              badge.className = "bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-semibold";
+            }
+          };
+          window.addEventListener("online", updateConnBadge);
+          window.addEventListener("offline", updateConnBadge);
+          updateConnBadge();
+
+          try {
+            const manifest = {
+              name: "GatoPixel Sales",
+              short_name: "GatoPixel",
+              start_url: ".",
+              display: "standalone",
+              background_color: "#0f172a",
+              theme_color: "#4f46e5",
+              icons: [{
+                src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%234f46e5'/><text x='50' y='68' font-size='54' text-anchor='middle' fill='white'>🐱</text></svg>",
+                sizes: "192x192",
+                type: "image/svg+xml"
+              }]
+            };
+            const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+            const link = document.createElement("link");
+            link.rel = "manifest";
+            link.href = URL.createObjectURL(blob);
+            document.head.appendChild(link);
+          } catch (_) {}
+
+          if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+            navigator.serviceWorker.register("./sw.js").catch(() => {});
+          }
+        },
+
+        async adjustStockForOrder(order, direction = -1) {
           let changed = false;
           const orderItems = Array.isArray(order.items) ? order.items : [];
           orderItems.forEach(it => {
@@ -644,7 +1630,7 @@ new_save_order_fn = '''        async adjustStockForOrder(order, direction = -1) 
           if (event) event.preventDefault();
           const idVal = document.getElementById("order-id").value;
           const customer = document.getElementById("order-customer").value.trim();
-          const phone = document.getElementById("order-phone").value.replace(/\\D/g, "");
+          const phone = document.getElementById("order-phone").value.replace(/\D/g, "");
           const paidRaw = parseFloat(document.getElementById("order-paid").value);
           const paidAmount = Number.isFinite(paidRaw) && paidRaw >= 0 ? paidRaw : 0;
           let status = document.getElementById("order-status").value;
@@ -755,37 +1741,52 @@ new_save_order_fn = '''        async adjustStockForOrder(order, direction = -1) 
           App.UI.closeModal("modal-order");
           App.UI.refreshAll();
           App.UI.showToast(App.UI.t("toast_order_saved"), "success");
-        },'''
+        },
 
-assert old_save_order_fn in html
-html = html.replace(old_save_order_fn, new_save_order_fn, 1)
+        async deleteOrder(id) {
+          const target = App.State.orders.find(o => o.id === id);
+          if (!target) return;
 
-# 11. Update saveProduct to save optional stock
-old_save_product_fn = '''        async saveProduct(event) {
-          if (event) event.preventDefault();
-          const idVal = document.getElementById("product-id").value;
-          const name = document.getElementById("product-name").value.trim();
-          const category = document.getElementById("product-category").value.trim() || "Geral";
-          const price = parseFloat(document.getElementById("product-price").value);
+          App.State.lastDeletedOrder = { ...target };
+          App.State.orders = App.State.orders.filter(o => o.id !== id);
+          await App.API.persistOrders(App.State.orders);
+          App.UI.refreshAll();
 
-          if (!name || !Number.isFinite(price) || price <= 0) return;
+          App.UI.showToast(App.UI.t("toast_order_deleted"), "info", {
+            label: App.UI.t("btn_undo"),
+            onClick: () => this.undoDeleteOrder()
+          });
+        },
 
-          if (idVal) {
-            const id = parseInt(idVal, 10);
-            const idx = App.State.products.findIndex(p => p.id === id);
-            if (idx !== -1) App.State.products[idx] = { id, name, category, price };
+        async undoDeleteOrder() {
+          if (!App.State.lastDeletedOrder) return;
+          App.State.orders.push(App.State.lastDeletedOrder);
+          App.State.orders.sort((a, b) => a.id - b.id);
+          App.State.lastDeletedOrder = null;
+          await App.API.persistOrders(App.State.orders);
+          App.UI.refreshAll();
+          App.UI.showToast(App.UI.t("toast_order_restored"), "success");
+        },
+
+        async toggleOrderStatus(id) {
+          const order = App.State.orders.find(o => o.id === id);
+          if (!order) return;
+
+          if (order.status === "Pendente" || order.status === "Parcial") {
+            order.status = "Aprovado";
+            order.paidAmount = order.amount;
+            App.Utils.playSuccessSound();
           } else {
-            const nextId = App.State.products.length ? Math.max(...App.State.products.map(p => p.id)) + 1 : 1;
-            App.State.products.push({ id: nextId, name, category, price });
+            order.status = "Pendente";
+            order.paidAmount = 0;
           }
 
-          await App.API.persistProducts(App.State.products);
-          App.UI.closeModal("modal-product");
-          App.UI.renderCatalog();
-          App.UI.showToast(App.UI.t("toast_product_saved"), "success");
-        },'''
+          await App.API.persistOrders(App.State.orders);
+          App.UI.refreshAll();
+          App.UI.showToast(`${App.UI.t("th_status")}: ${App.UI.t("badge_" + order.status)}`, "success");
+        },
 
-new_save_product_fn = '''        async saveProduct(event) {
+        async saveProduct(event) {
           if (event) event.preventDefault();
           const idVal = document.getElementById("product-id").value;
           const name = document.getElementById("product-name").value.trim();
@@ -809,94 +1810,514 @@ new_save_product_fn = '''        async saveProduct(event) {
           App.UI.closeModal("modal-product");
           App.UI.renderCatalog();
           App.UI.showToast(App.UI.t("toast_product_saved"), "success");
-        },'''
-
-assert old_save_product_fn in html
-html = html.replace(old_save_product_fn, new_save_product_fn, 1)
-
-# 12. Update UI methods: recalculateOrderTotals (with discount & shipping), customer datalist & auto-fill, openNewOrderModal, editOrder, editProduct, openReceiptModal, renderCatalog, renderTable (with overdue highlight & filter), updateKPIs (with overdue alert), and openCashReportModal/renderCashReport
-old_ui_recalc_and_modals = '''        recalculateOrderTotals() {
-          const rows = document.querySelectorAll("#order-items-container .order-item-row");
-          let grandTotal = 0;
-          rows.forEach(row => {
-            const qty = Math.max(1, parseInt(row.querySelector(".item-qty-input")?.value, 10) || 1);
-            const unit = parseFloat(row.querySelector(".item-price-input")?.value) || 0;
-            grandTotal += qty * unit;
-          });
-          grandTotal = Number(grandTotal.toFixed(2));
-          document.getElementById("order-amount").value = grandTotal > 0 ? grandTotal.toFixed(2) : "";
-          this.calculateRemainingBalance();
         },
 
-        openNewOrderModal(preselectedProductId = null) {
-          document.getElementById("order-id").value = "";
-          document.getElementById("order-customer").value = "";
-          document.getElementById("order-phone").value = "";
-          document.getElementById("order-amount").value = "";
-          document.getElementById("order-paid").value = "";
-          document.getElementById("order-status").value = "Pendente";
-          document.getElementById("modal-order-title").textContent = this.t("btn_new_order");
+        async deleteProduct(id) {
+          App.State.products = App.State.products.filter(p => p.id !== id);
+          await App.API.persistProducts(App.State.products);
+          App.UI.renderCatalog();
+          App.UI.showToast(App.UI.t("toast_product_deleted"), "info");
+        },
 
-          const container = document.getElementById("order-items-container");
-          container.innerHTML = "";
+        async saveSettings(event) {
+          if (event) event.preventDefault();
+          App.State.config = {
+            language: document.getElementById("setting-language-input").value || "pt",
+            pixKey: document.getElementById("pix-key-input").value.trim(),
+            merchantName: document.getElementById("pix-name-input").value.trim(),
+            merchantCity: document.getElementById("pix-city-input").value.trim()
+          };
+          await App.API.persistConfig(App.State.config);
+          App.UI.applyTranslations();
+          App.UI.refreshAll();
+          App.UI.closeModal("modal-pix-settings");
+          App.UI.showToast(App.UI.t("toast_saved"), "success");
+        },
 
-          if (preselectedProductId) {
-            const prod = App.State.products.find(p => p.id === preselectedProductId);
-            if (prod) {
-              this.addOrderItemRow({ product: prod.name, quantity: 1, unitPrice: prod.price });
-            } else {
-              this.addOrderItemRow();
+        calculateCRC16(payload) {
+          let crc = 0xFFFF;
+          for (let i = 0; i < payload.length; i++) {
+            crc ^= (payload.charCodeAt(i) << 8);
+            for (let j = 0; j < 8; j++) {
+              crc = (crc & 0x8000) !== 0 ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
             }
-          } else {
-            this.addOrderItemRow();
           }
-
-          this.calculateRemainingBalance();
-          document.getElementById("modal-order").classList.remove("hidden");
+          return crc.toString(16).toUpperCase().padStart(4, "0");
         },
 
-        editOrder(id) {
+        generatePixCode(key, name, city, amount) {
+          const { clean: cleanKey } = App.Utils.sanitizePixKey(key);
+          const cleanName = (name || "GatoPixel").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().substring(0, 25) || "GATOPIXEL";
+          const cleanCity = (city || "SAO PAULO").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().substring(0, 15) || "SAO PAULO";
+          const formattedAmount = (Number(amount) || 0).toFixed(2);
+
+          const gui = "0014BR.GOV.BCB.PIX";
+          const keyField = "01" + String(cleanKey.length).padStart(2, "0") + cleanKey;
+          const merchantAccount = "26" + String((gui + keyField).length).padStart(2, "0") + gui + keyField;
+
+          const cat = "52040000";
+          const curr = "5303986";
+          const amtField = "54" + String(formattedAmount.length).padStart(2, "0") + formattedAmount;
+          const country = "5802BR";
+          const nameField = "59" + String(cleanName.length).padStart(2, "0") + cleanName;
+          const cityField = "60" + String(cleanCity.length).padStart(2, "0") + cleanCity;
+          const txid = "0503***";
+          const addData = "62" + String(txid.length).padStart(2, "0") + txid;
+
+          const payload = "000201" + merchantAccount + cat + curr + amtField + country + nameField + cityField + addData + "6304";
+          return payload + this.calculateCRC16(payload);
+        },
+
+        openPixModal(id) {
           const order = App.State.orders.find(o => o.id === id);
           if (!order) return;
-          document.getElementById("order-id").value = order.id;
-          document.getElementById("order-customer").value = order.customer;
-          document.getElementById("order-phone").value = order.phone || "";
-          document.getElementById("order-paid").value = order.paidAmount;
-          document.getElementById("order-status").value = order.status;
-          document.getElementById("modal-order-title").textContent = `#${order.id} — ${order.customer}`;
 
-          const container = document.getElementById("order-items-container");
+          App.State.currentPixOrderId = id;
+          const remaining = Math.max(0, order.amount - order.paidAmount);
+          const amountToCharge = remaining > 0 ? remaining : order.amount;
+          const { clean: cleanKey, type: keyType } = App.Utils.sanitizePixKey(App.State.config.pixKey);
+
+          const payload = this.generatePixCode(
+            App.State.config.pixKey,
+            App.State.config.merchantName,
+            App.State.config.merchantCity,
+            amountToCharge
+          );
+
+          document.getElementById("pix-modal-amount").textContent = App.Utils.formatCurrency(amountToCharge);
+          document.getElementById("pix-key-preview").textContent = `${keyType}: ${cleanKey}`;
+          document.getElementById("pix-copia-cola-code").value = payload;
+
+          const container = document.getElementById("pix-qrcode-container");
           container.innerHTML = "";
-          const items = Array.isArray(order.items) && order.items.length
+          if (typeof QRCode !== "undefined") {
+            new QRCode(container, {
+              text: payload,
+              width: 170,
+              height: 170,
+              colorDark: "#0f172a",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          } else {
+            container.innerHTML = `<div class="p-3 text-[11px] font-mono break-all text-slate-600">${App.Utils.escapeHtml(payload)}</div>`;
+          }
+
+          const statusEl = document.getElementById("pix-webhook-status");
+          if (order.status === "Aprovado") {
+            statusEl.className = "text-[11px] text-emerald-600 font-bold mt-2 flex items-center justify-center gap-1.5";
+            statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${App.UI.t("badge_Aprovado")}!`;
+          } else {
+            statusEl.className = "text-[11px] text-amber-600 font-semibold mt-2 flex items-center justify-center gap-1.5";
+            statusEl.innerHTML = `<i class="fa-solid fa-clock"></i> Aguardando conferência no extrato bancário`;
+          }
+
+          document.getElementById("modal-pix").classList.remove("hidden");
+        },
+
+        async confirmManualPixReceipt(closeAfter = true) {
+          if (App.State.webhookTimer) {
+            clearTimeout(App.State.webhookTimer);
+            App.State.webhookTimer = null;
+          }
+          const order = App.State.orders.find(o => o.id === App.State.currentPixOrderId);
+          if (!order || order.status === "Aprovado") return;
+
+          order.status = "Aprovado";
+          order.paidAmount = order.amount;
+          await App.API.persistOrders(App.State.orders);
+          App.Utils.playSuccessSound();
+          App.UI.refreshAll();
+
+          const statusEl = document.getElementById("pix-webhook-status");
+          if (statusEl) {
+            statusEl.className = "text-[11px] text-emerald-600 font-bold mt-2 flex items-center justify-center gap-1.5";
+            statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${App.UI.t("badge_Aprovado")}!`;
+          }
+
+          App.UI.showToast(`#${order.id} — ${App.UI.t("badge_Aprovado")}!`, "success");
+          if (closeAfter) App.UI.closePixModal();
+        },
+
+        async copyPixCopiaECola() {
+          const code = document.getElementById("pix-copia-cola-code").value;
+          if (!code) return;
+          try {
+            await navigator.clipboard.writeText(code);
+            App.UI.showToast(App.UI.t("toast_pix_copied"), "success");
+          } catch (_) {}
+        },
+
+        sendOrderWhatsapp(id) {
+          const order = App.State.orders.find(o => o.id === id);
+          if (!order) return;
+
+          const remaining = Math.max(0, order.amount - order.paidAmount);
+          const chargeVal = remaining > 0 ? remaining : order.amount;
+          const pixCode = this.generatePixCode(
+            App.State.config.pixKey,
+            App.State.config.merchantName,
+            App.State.config.merchantCity,
+            chargeVal
+          );
+
+          const orderItems = Array.isArray(order.items) && order.items.length
             ? order.items
-            : [{ product: order.product, quantity: order.quantity || 1, unitPrice: order.unitPrice || order.amount }];
+            : [{ product: order.product, quantity: order.quantity, unitPrice: order.unitPrice }];
 
-          items.forEach(it => this.addOrderItemRow(it));
-          this.calculateRemainingBalance();
-          document.getElementById("modal-order").classList.remove("hidden");
+          const itemDesc = orderItems.length === 1
+            ? `${orderItems[0].quantity}x ${orderItems[0].product} (${App.Utils.formatCurrency(orderItems[0].unitPrice)} un.)`
+            : "\n" + orderItems.map(it => `• ${it.quantity}x ${it.product} (${App.Utils.formatCurrency(it.unitPrice)} un.)`).join("\n");
+
+          const msg = order.status === "Aprovado"
+            ? `Olá ${order.customer}! ✅ Confirmamos o pagamento de ${App.Utils.formatCurrency(order.amount)} referente ao pedido *#${order.id}* (${App.State.config.merchantName}): ${itemDesc}\n\nObrigado pela preferência!`
+            : `Olá ${order.customer}! 👋 Aqui é da *${App.State.config.merchantName}*.\n\nSeguem os dados do pedido *#${order.id}*: ${itemDesc}\n💰 Valor a pagar: *${App.Utils.formatCurrency(chargeVal)}*\n\n📋 *Pix Copia e Cola:*\n${pixCode}`;
+
+          let phoneDigits = (order.phone || "").replace(/\D/g, "");
+          if (phoneDigits.length === 10 || phoneDigits.length === 11) {
+            phoneDigits = "55" + phoneDigits;
+          }
+
+          const url = phoneDigits
+            ? `https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}`
+            : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+          window.open(url, "_blank", "noopener,noreferrer");
         },
 
-        openNewProductModal() {
-          document.getElementById("product-id").value = "";
-          document.getElementById("product-name").value = "";
-          document.getElementById("product-category").value = "";
-          document.getElementById("product-price").value = "";
-          document.getElementById("modal-product-title").textContent = this.t("btn_new_product");
-          document.getElementById("modal-product").classList.remove("hidden");
+        exportCSV() {
+          if (!App.State.orders.length) return;
+          let csv = "ID,Cliente,WhatsApp,Produto,Quantidade,Valor Unitario,Valor Total,Valor Pago,Status,Data\n";
+          App.State.orders.forEach(o => {
+            const prodList = Array.isArray(o.items) && o.items.length
+              ? o.items.map(it => `${it.quantity}x ${it.product} (${it.unitPrice.toFixed(2)})`).join(" | ")
+              : o.product;
+            csv += `"${o.id}","${o.customer.replace(/"/g, '""')}","${o.phone || ""}","${prodList.replace(/"/g, '""')}","${o.quantity}","${o.unitPrice.toFixed(2)}","${o.amount.toFixed(2)}","${o.paidAmount.toFixed(2)}","${o.status}","${o.date}"\n`;
+          });
+          const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `vendas_gatopixel_${new Date().toISOString().split("T")[0]}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
         },
 
-        editProduct(id) {
-          const prod = App.State.products.find(p => p.id === id);
+        exportFullBackup() {
+          const payload = {
+            exportedAt: new Date().toISOString(),
+            version: "5.0",
+            config: App.State.config,
+            products: App.State.products,
+            orders: App.State.orders
+          };
+          const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `gatopixel_backup_${new Date().toISOString().split("T")[0]}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          App.UI.showToast(App.UI.t("toast_backup_exported"), "success");
+        },
+
+        importFullBackup(event) {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            try {
+              const data = JSON.parse(e.target.result);
+              if (!data || !Array.isArray(data.orders)) throw new Error("Estrutura inválida");
+
+              App.State.orders = data.orders.map((o, i) => App.Utils.sanitizeOrder(o, i + 1));
+              if (Array.isArray(data.products)) {
+                App.State.products = data.products.map((p, i) => App.Utils.sanitizeProduct(p, i + 1));
+              }
+              if (data.config && typeof data.config === "object") {
+                App.State.config = { ...App.State.config, ...data.config };
+              }
+
+              await App.API.persistOrders(App.State.orders);
+              await App.API.persistProducts(App.State.products);
+              await App.API.persistConfig(App.State.config);
+
+              App.UI.applyTranslations();
+              App.UI.refreshAll();
+              App.UI.closeModal("modal-pix-settings");
+              App.UI.showToast(App.UI.t("toast_backup_restored"), "success");
+            } catch (_) {
+              App.UI.showToast(App.UI.t("toast_backup_invalid"), "error");
+            } finally {
+              event.target.value = "";
+            }
+          };
+          reader.readAsText(file);
+        },
+
+        async runManualDiagnostic() {
+          let fixes = 0;
+          App.State.orders = App.State.orders.map((o, i) => {
+            const clean = App.Utils.sanitizeOrder(o, i + 1);
+            if (JSON.stringify(clean) !== JSON.stringify(o)) fixes++;
+            return clean;
+          });
+          App.State.products = App.State.products.map((p, i) => {
+            const clean = App.Utils.sanitizeProduct(p, i + 1);
+            if (JSON.stringify(clean) !== JSON.stringify(p)) fixes++;
+            return clean;
+          });
+
+          await App.API.persistOrders(App.State.orders);
+          await App.API.persistProducts(App.State.products);
+
+          App.State.patchCount += fixes;
+          document.getElementById("repair-patch-count").textContent = `${App.State.patchCount}`;
+          this.logRepair(`Diagnóstico concluído: ${App.State.orders.length} pedidos e ${App.State.products.length} itens verificados (${fixes} correções).`);
+          App.UI.refreshAll();
+        },
+
+        logRepair(msg) {
+          const consoleEl = document.getElementById("repair-console-log");
+          if (!consoleEl) return;
+          const line = document.createElement("div");
+          line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+          consoleEl.appendChild(line);
+          consoleEl.scrollTop = consoleEl.scrollHeight;
+        },
+
+        async saveDevJson() {
+          try {
+            const parsed = JSON.parse(document.getElementById("dev-json-editor").value);
+            if (Array.isArray(parsed)) {
+              App.State.orders = parsed.map((o, i) => App.Utils.sanitizeOrder(o, i + 1));
+            } else if (parsed && Array.isArray(parsed.orders)) {
+              App.State.orders = parsed.orders.map((o, i) => App.Utils.sanitizeOrder(o, i + 1));
+              if (Array.isArray(parsed.products)) {
+                App.State.products = parsed.products.map((p, i) => App.Utils.sanitizeProduct(p, i + 1));
+                await App.API.persistProducts(App.State.products);
+              }
+            } else {
+              throw new Error("Formato inválido");
+            }
+            await App.API.persistOrders(App.State.orders);
+            App.UI.refreshAll();
+            App.UI.showToast(App.UI.t("toast_saved"), "success");
+          } catch (e) {
+            App.UI.showToast(`JSON Error: ${e.message}`, "error");
+          }
+        },
+
+        async injectMockOrder() {
+          const nextId = App.State.orders.length ? Math.max(...App.State.orders.map(o => o.id)) + 1 : 1;
+          App.State.orders.push({
+            id: nextId,
+            customer: `Cliente Teste #${nextId}`,
+            phone: "11999998888",
+            product: "Pack Automação Pro",
+            quantity: 2,
+            unitPrice: 98.50,
+            amount: 197.00,
+            paidAmount: 0,
+            status: "Pendente",
+            date: new Date().toISOString().split("T")[0]
+          });
+          await App.API.persistOrders(App.State.orders);
+          document.getElementById("dev-json-editor").value = JSON.stringify({ orders: App.State.orders, products: App.State.products }, null, 2);
+          App.UI.refreshAll();
+        },
+
+        async resetDatabase() {
+          App.State.orders = [];
+          await App.API.persistOrders([]);
+          document.getElementById("dev-json-editor").value = JSON.stringify({ orders: [], products: App.State.products }, null, 2);
+          App.UI.refreshAll();
+        },
+
+        askGatoPixel(action) {
+          const orders = App.State.orders;
+          if (action === "analyze") {
+            const totalRev = orders.reduce((acc, o) => acc + o.paidAmount, 0);
+            const totalItemsSold = orders.reduce((acc, o) => acc + o.quantity, 0);
+            const pending = orders.filter(o => o.status === "Pendente" || o.status === "Parcial");
+            const pendingValue = pending.reduce((acc, o) => acc + Math.max(0, o.amount - o.paidAmount), 0);
+
+            let reply = `📊 <strong>${App.UI.t("ai_btn_analyze")}:</strong><br>`;
+            reply += `• ${App.UI.t("kpi_revenue")}: <strong>${App.Utils.formatCurrency(totalRev)}</strong><br>`;
+            reply += `• ${App.UI.t("label_quantity")} total: <strong>${totalItemsSold}</strong><br>`;
+            reply += `• ${App.UI.t("status_pending")}: <strong>${pending.length}</strong> (${App.Utils.formatCurrency(pendingValue)})`;
+            App.UI.appendChatMessage(reply, "cat");
+          } else if (action === "copy") {
+            const target = orders.find(o => o.status === "Pendente" || o.status === "Parcial");
+            if (!target) {
+              App.UI.appendChatMessage("Nenhum pedido pendente no momento!", "cat");
+              return;
+            }
+            const remaining = Math.max(0, target.amount - target.paidAmount);
+            const pixCode = this.generatePixCode(App.State.config.pixKey, App.State.config.merchantName, App.State.config.merchantCity, remaining);
+            const msg = `Olá ${target.customer}! 👋 Aqui é da ${App.State.config.merchantName}. Lembrete do pedido: ${target.quantity}x ${target.product} (${App.Utils.formatCurrency(remaining)}). Pix Copia e Cola: ${pixCode}`;
+            App.State.lastWhatsappCopy = msg;
+
+            const reply = `
+              <div class="bg-white p-2.5 rounded-xl border border-slate-200 font-mono text-[11px] my-1 text-slate-700 break-all">${App.Utils.escapeHtml(msg)}</div>
+              <button onclick="App.UI.copyLastWhatsappMessage()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 mt-1">
+                <i class="fa-solid fa-copy"></i> ${App.UI.t("btn_copy_pix")}
+              </button>
+            `;
+            App.UI.appendChatMessage(reply, "cat");
+          }
+        },
+
+        handleGatoPixelSubmit(event) {
+          if (event) event.preventDefault();
+          const input = document.getElementById("gatopixel-input");
+          const text = input.value.trim();
+          if (!text) return;
+
+          App.UI.appendChatMessage(App.Utils.escapeHtml(text), "user");
+          input.value = "";
+
+          setTimeout(() => {
+            const lower = text.toLowerCase();
+            if (lower.includes("venda") || lower.includes("sales") || lower.includes("resumo")) {
+              this.askGatoPixel("analyze");
+            } else if (lower.includes("pix") || lower.includes("whatsapp") || lower.includes("cobran")) {
+              this.askGatoPixel("copy");
+            } else {
+              App.UI.appendChatMessage("🐾 Use os botões rápidos abaixo para analisar vendas ou gerar mensagens Pix!", "cat");
+            }
+          }, 250);
+        }
+      },
+
+      UI: {
+        t(key) {
+          const lang = App.Translations[App.State.config.language] ? App.State.config.language : "pt";
+          return App.Translations[lang][key] || App.Translations.pt[key] || key;
+        },
+
+        switchTab(tabName) {
+          App.State.activeTab = tabName;
+          document.querySelectorAll(".view-tab").forEach(tab => tab.classList.remove("active"));
+          const target = document.getElementById(`view-${tabName}`);
+          if (target) target.classList.add("active");
+
+          document.querySelectorAll(".nav-tab-btn").forEach(btn => {
+            const isTarget = btn.getAttribute("data-tab") === tabName;
+            if (isTarget) {
+              btn.classList.add("bg-indigo-600", "text-white");
+              btn.classList.remove("text-slate-400");
+            } else {
+              btn.classList.remove("bg-indigo-600", "text-white");
+              btn.classList.add("text-slate-400");
+            }
+          });
+
+          if (tabName === "analytics") {
+            requestAnimationFrame(() => this.updateCharts());
+          } else if (tabName === "catalog") {
+            this.renderCatalog();
+          } else if (tabName === "dev") {
+            document.getElementById("dev-json-editor").value = JSON.stringify(
+              { orders: App.State.orders, products: App.State.products },
+              null,
+              2
+            );
+          }
+        },
+
+        tryOpenDevPanel() {
+          if (App.State.devAuthenticated) {
+            this.switchTab("dev");
+          } else {
+            document.getElementById("modal-dev-auth").classList.remove("hidden");
+            document.getElementById("dev-pin-input").focus();
+          }
+        },
+
+        getCatalogOptionsHtml(selectedId = "") {
+          return `<option value="">${App.Utils.escapeHtml(this.t("catalog_select_default"))}</option>` +
+            App.State.products.map(p => `<option value="${p.id}" ${String(p.id) === String(selectedId) ? "selected" : ""}>${App.Utils.escapeHtml(p.name)} — ${App.Utils.formatCurrency(p.price)}</option>`).join("");
+        },
+
+        addOrderItemRow(itemData = null) {
+          const container = document.getElementById("order-items-container");
+          if (!container) return;
+
+          const row = document.createElement("div");
+          row.className = "order-item-row bg-white border border-slate-200 rounded-xl p-2.5 space-y-2 shadow-xs";
+
+          const prodName = itemData?.product ? App.Utils.escapeHtml(itemData.product) : "";
+          const qtyVal = itemData?.quantity ? Math.max(1, parseInt(itemData.quantity, 10)) : 1;
+          const priceVal = Number.isFinite(Number(itemData?.unitPrice)) && Number(itemData?.unitPrice) > 0
+            ? Number(itemData.unitPrice).toFixed(2)
+            : "";
+
+          row.innerHTML = `
+            <div class="flex items-center gap-1.5">
+              <select onchange="App.UI.onRowCatalogChange(this)" aria-label="Selecionar produto do catálogo" class="item-catalog-select flex-1 bg-indigo-50/70 border border-indigo-200 rounded-lg px-2 py-1.5 text-[11px] text-slate-700 focus:outline-none focus:border-indigo-500">
+                ${this.getCatalogOptionsHtml()}
+              </select>
+              <button type="button" onclick="App.UI.removeOrderItemRow(this)" aria-label="Remover item" title="Remover item" class="item-remove-btn text-rose-500 hover:bg-rose-50 px-2 py-1.5 rounded-lg transition">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </div>
+            <div class="grid grid-cols-12 gap-2">
+              <div class="col-span-6">
+                <input type="text" value="${prodName}" placeholder="${App.Utils.escapeHtml(this.t("label_product"))}" required class="item-product-input w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+              </div>
+              <div class="col-span-3">
+                <input type="number" step="1" min="1" value="${qtyVal}" oninput="App.UI.recalculateOrderTotals()" placeholder="Qtd" required class="item-qty-input w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-800 font-semibold text-center focus:outline-none focus:border-indigo-500">
+              </div>
+              <div class="col-span-3">
+                <input type="number" step="0.01" min="0.01" value="${priceVal}" oninput="App.UI.recalculateOrderTotals()" placeholder="R$ Un." required class="item-price-input w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-500">
+              </div>
+            </div>
+          `;
+
+          container.appendChild(row);
+          this.updateRemoveRowButtons();
+          this.recalculateOrderTotals();
+        },
+
+        removeOrderItemRow(btn) {
+          const container = document.getElementById("order-items-container");
+          if (!container) return;
+          const rows = container.querySelectorAll(".order-item-row");
+          if (rows.length <= 1) return;
+          btn.closest(".order-item-row")?.remove();
+          this.updateRemoveRowButtons();
+          this.recalculateOrderTotals();
+        },
+
+        updateRemoveRowButtons() {
+          const rows = document.querySelectorAll("#order-items-container .order-item-row");
+          rows.forEach(r => {
+            const btn = r.querySelector(".item-remove-btn");
+            if (btn) {
+              btn.disabled = rows.length <= 1;
+              btn.classList.toggle("opacity-30", rows.length <= 1);
+              btn.classList.toggle("cursor-not-allowed", rows.length <= 1);
+            }
+          });
+        },
+
+        onRowCatalogChange(selectEl) {
+          const prodId = parseInt(selectEl.value, 10);
+          const prod = App.State.products.find(p => p.id === prodId);
           if (!prod) return;
-          document.getElementById("product-id").value = prod.id;
-          document.getElementById("product-name").value = prod.name;
-          document.getElementById("product-category").value = prod.category;
-          document.getElementById("product-price").value = prod.price;
-          document.getElementById("modal-product-title").textContent = prod.name;
-          document.getElementById("modal-product").classList.remove("hidden");
-        },'''
+          const row = selectEl.closest(".order-item-row");
+          if (!row) return;
+          row.querySelector(".item-product-input").value = prod.name;
+          row.querySelector(".item-price-input").value = prod.price.toFixed(2);
+          const qtyInput = row.querySelector(".item-qty-input");
+          if (!qtyInput.value || parseInt(qtyInput.value, 10) < 1) {
+            qtyInput.value = "1";
+          }
+          this.recalculateOrderTotals();
+        },
 
-new_ui_recalc_and_modals = '''        populateCustomerDatalist() {
+        populateCustomerDatalist() {
           const datalist = document.getElementById("saved-customers-list");
           if (!datalist) return;
           const map = new Map();
@@ -1131,53 +2552,167 @@ new_ui_recalc_and_modals = '''        populateCustomerDatalist() {
               ` : `<p class="text-slate-400 text-[11px]">Nenhuma venda registrada neste período.</p>`}
             </div>
           `;
-        },'''
+        },
 
-assert old_ui_recalc_and_modals in html
-html = html.replace(old_ui_recalc_and_modals, new_ui_recalc_and_modals, 1)
+        openReceiptModal(id) {
+          const order = App.State.orders.find(o => o.id === id);
+          if (!order) return;
 
-# 13. Update Receipt Modal to show Discount, Shipping, and Due Date if present
-old_receipt_totals = '''            <div class="space-y-1">
-              <div class="flex justify-between text-sm"><span class="font-semibold text-slate-700">Total:</span><span class="font-extrabold text-slate-900">${App.Utils.formatCurrency(order.amount)}</span></div>
-              <div class="flex justify-between text-emerald-700"><span>Pago:</span><span class="font-bold">${App.Utils.formatCurrency(order.paidAmount)}</span></div>
-              ${remaining > 0 ? `<div class="flex justify-between text-amber-700"><span>Saldo:</span><span class="font-bold">${App.Utils.formatCurrency(remaining)}</span></div>` : ""}
-            </div>'''
+          const remaining = Math.max(0, order.amount - order.paidAmount);
+          const statusLabel = this.t("badge_" + order.status);
+          const body = document.getElementById("receipt-body-content");
 
-new_receipt_totals = '''            <div class="space-y-1">
+          body.innerHTML = `
+            <div class="text-center border-b border-dashed border-slate-300 pb-3">
+              <div class="font-extrabold text-base text-slate-900">${App.Utils.escapeHtml(App.State.config.merchantName)}</div>
+              <div class="text-[11px] text-slate-500">${App.Utils.escapeHtml(App.State.config.merchantCity)}</div>
+              <div class="text-[10px] font-mono text-slate-400 mt-1">${this.t("receipt_modal_title")} #${String(order.id).padStart(4, "0")}</div>
+            </div>
+            <div class="space-y-1.5 border-b border-dashed border-slate-300 pb-3">
+              <div class="flex justify-between"><span class="text-slate-500">${this.t("th_date")}:</span><span class="font-semibold">${App.Utils.escapeHtml(order.date)}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">${this.t("th_customer")}:</span><span class="font-semibold">${App.Utils.escapeHtml(order.customer)}</span></div>
+              ${(Array.isArray(order.items) && order.items.length ? order.items : [{ product: order.product, quantity: order.quantity, unitPrice: order.unitPrice }]).map(it => `
+                <div class="flex justify-between items-start gap-2">
+                  <span class="text-slate-700 font-medium">${it.quantity}x ${App.Utils.escapeHtml(it.product)}</span>
+                  <span class="font-semibold whitespace-nowrap">${App.Utils.formatCurrency(it.quantity * it.unitPrice)}</span>
+                </div>
+              `).join("")}
+              <div class="flex justify-between"><span class="text-slate-500">${this.t("th_status")}:</span><span class="font-bold">${App.Utils.escapeHtml(statusLabel)}</span></div>
+            </div>
+            <div class="space-y-1">
               ${order.discountValue > 0 ? `<div class="flex justify-between text-rose-600"><span>Desconto:</span><span class="font-semibold">-${App.Utils.formatCurrency(order.discountValue)}</span></div>` : ""}
               ${order.shipping > 0 ? `<div class="flex justify-between text-slate-600"><span>Frete / Taxa:</span><span class="font-semibold">+${App.Utils.formatCurrency(order.shipping)}</span></div>` : ""}
               <div class="flex justify-between text-sm"><span class="font-semibold text-slate-700">Total:</span><span class="font-extrabold text-slate-900">${App.Utils.formatCurrency(order.amount)}</span></div>
               <div class="flex justify-between text-emerald-700"><span>Pago:</span><span class="font-bold">${App.Utils.formatCurrency(order.paidAmount)}</span></div>
               ${remaining > 0 ? `<div class="flex justify-between text-amber-700"><span>Saldo:</span><span class="font-bold">${App.Utils.formatCurrency(remaining)}</span></div>` : ""}
               ${order.dueDate ? `<div class="flex justify-between text-slate-500"><span>Vencimento:</span><span class="font-semibold">${App.Utils.escapeHtml(order.dueDate)}</span></div>` : ""}
-            </div>'''
+            </div>
+            <div class="pt-2 text-center text-[10px] text-slate-400">
+              Pix: ${App.Utils.escapeHtml(App.State.config.pixKey)}
+            </div>
+          `;
 
-assert old_receipt_totals in html
-html = html.replace(old_receipt_totals, new_receipt_totals, 1)
+          document.getElementById("modal-receipt").classList.remove("hidden");
+        },
 
-# 14. Update renderTable to support OVERDUE filter & show dueDate/overdue badges + discount/shipping indicators
-old_table_filter_block = '''          const filtered = App.State.orders
-            .filter(o => {
-              const matchesStatus = statusFilter === "ALL" || o.status === statusFilter;'''
+        openSettingsModal() {
+          document.getElementById("setting-language-input").value = App.State.config.language || "pt";
+          document.getElementById("pix-key-input").value = App.State.config.pixKey || "";
+          document.getElementById("pix-name-input").value = App.State.config.merchantName || "";
+          document.getElementById("pix-city-input").value = App.State.config.merchantCity || "";
+          this.previewSanitizedPixKey();
+          document.getElementById("modal-pix-settings").classList.remove("hidden");
+        },
 
-new_table_filter_block = '''          const filtered = App.State.orders
+        previewSanitizedPixKey() {
+          const val = document.getElementById("pix-key-input").value;
+          const { clean, type } = App.Utils.sanitizePixKey(val);
+          const hint = document.getElementById("pix-key-type-hint");
+          if (hint) {
+            hint.textContent = clean ? `Formato EMV (${type}): ${clean}` : "";
+          }
+        },
+
+        closeModal(id) {
+          const el = document.getElementById(id);
+          if (el) el.classList.add("hidden");
+        },
+
+        closePixModal() {
+          if (App.State.webhookTimer) {
+            clearTimeout(App.State.webhookTimer);
+            App.State.webhookTimer = null;
+          }
+          this.closeModal("modal-pix");
+        },
+
+        handleBackdropClick(event, modalId) {
+          if (event.target.id === modalId) {
+            if (modalId === "modal-pix") this.closePixModal();
+            else this.closeModal(modalId);
+          }
+        },
+
+        toggleGatoPixelModal() {
+          document.getElementById("modal-gatopixel-ai").classList.toggle("hidden");
+        },
+
+        calculateRemainingBalance() {
+          const amount = parseFloat(document.getElementById("order-amount").value) || 0;
+          const paid = parseFloat(document.getElementById("order-paid").value) || 0;
+          const remaining = Math.max(0, amount - paid);
+          const box = document.getElementById("balance-info-box");
+          if (amount > 0 && paid > 0 && remaining > 0) {
+            box.classList.remove("hidden");
+            document.getElementById("order-balance-display").textContent = App.Utils.formatCurrency(remaining);
+          } else {
+            box.classList.add("hidden");
+          }
+        },
+
+        refreshAll() {
+          this.renderTable();
+          this.renderCatalog();
+          this.updateKPIs();
+          if (App.State.activeTab === "analytics") {
+            this.updateCharts();
+          }
+        },
+
+        renderTable() {
+          const tbody = document.getElementById("orders-table-body");
+          if (!tbody) return;
+
+          const search = (document.getElementById("search-orders").value || "").toLowerCase().trim();
+          const statusFilter = document.getElementById("filter-status").value;
+          const periodFilter = document.getElementById("filter-period").value;
+          const sortOrder = document.getElementById("sort-orders").value;
+
+          const now = new Date();
+          const todayStr = now.toISOString().split("T")[0];
+          const monthPrefix = todayStr.slice(0, 7);
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString().split("T")[0];
+
+          const filtered = App.State.orders
             .filter(o => {
               const matchesStatus = statusFilter === "ALL"
-                || (statusFilter === "OVERDUE" ? App.Utils.isOrderOverdue(o) : o.status === statusFilter);'''
+                || (statusFilter === "OVERDUE" ? App.Utils.isOrderOverdue(o) : o.status === statusFilter);
+              const allProductsText = Array.isArray(o.items) && o.items.length
+                ? o.items.map(it => it.product).join(" ").toLowerCase()
+                : o.product.toLowerCase();
+              const matchesText =
+                !search ||
+                o.customer.toLowerCase().includes(search) ||
+                allProductsText.includes(search) ||
+                `#${o.id}`.includes(search);
 
-assert old_table_filter_block in html
-html = html.replace(old_table_filter_block, new_table_filter_block, 1)
+              let matchesPeriod = true;
+              if (periodFilter === "TODAY") matchesPeriod = o.date === todayStr;
+              else if (periodFilter === "7DAYS") matchesPeriod = o.date >= sevenDaysAgo;
+              else if (periodFilter === "MONTH") matchesPeriod = o.date.startsWith(monthPrefix);
 
-old_mobile_card_render = '''              const remaining = Math.max(0, o.amount - o.paidAmount);
-              const label = App.Utils.escapeHtml(this.t("badge_" + o.status));
-              const badgeCls = {
-                Aprovado: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-                Parcial: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-                Cancelado: "bg-rose-500/20 text-rose-400 border-rose-500/30",
-                Pendente: "bg-amber-500/20 text-amber-400 border-amber-500/30"
-              }[o.status] || "bg-amber-500/20 text-amber-400 border-amber-500/30";'''
+              return matchesStatus && matchesText && matchesPeriod;
+            })
+            .sort((a, b) => {
+              if (sortOrder === "DATE_ASC") return a.date.localeCompare(b.date) || a.id - b.id;
+              if (sortOrder === "AMOUNT_DESC") return b.amount - a.amount;
+              if (sortOrder === "AMOUNT_ASC") return a.amount - b.amount;
+              return b.date.localeCompare(a.date) || b.id - a.id;
+            });
 
-new_mobile_card_render = '''              const remaining = Math.max(0, o.amount - o.paidAmount);
+          const mobileContainer = document.getElementById("orders-mobile-cards");
+
+          if (!filtered.length) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">${App.Utils.escapeHtml(this.t("empty_orders"))}</td></tr>`;
+            if (mobileContainer) {
+              mobileContainer.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 bg-slate-900/50 rounded-xl border border-slate-700/50">${App.Utils.escapeHtml(this.t("empty_orders"))}</div>`;
+            }
+            return;
+          }
+
+          if (mobileContainer) {
+            mobileContainer.innerHTML = filtered.map(o => {
+              const remaining = Math.max(0, o.amount - o.paidAmount);
               const isOverdue = App.Utils.isOrderOverdue(o);
               const label = isOverdue ? "Vencido" : App.Utils.escapeHtml(this.t("badge_" + o.status));
               const badgeCls = isOverdue
@@ -1187,21 +2722,49 @@ new_mobile_card_render = '''              const remaining = Math.max(0, o.amount
                     Parcial: "bg-blue-500/20 text-blue-400 border-blue-500/30",
                     Cancelado: "bg-rose-500/20 text-rose-400 border-rose-500/30",
                     Pendente: "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                  }[o.status] || "bg-amber-500/20 text-amber-400 border-amber-500/30");'''
+                  }[o.status] || "bg-amber-500/20 text-amber-400 border-amber-500/30");
 
-assert old_mobile_card_render in html
-html = html.replace(old_mobile_card_render, new_mobile_card_render, 1)
+              const itemsHtml = (Array.isArray(o.items) && o.items.length > 0)
+                ? o.items.map(it => `<span class="inline-block bg-slate-800 border border-slate-700 text-slate-200 text-[10px] px-1.5 py-0.5 rounded mr-1 mb-1"><b>${it.quantity}x</b> ${App.Utils.escapeHtml(it.product)}</span>`).join("")
+                : `<span class="text-[11px] text-slate-300"><b>${o.quantity}x</b> ${App.Utils.escapeHtml(o.product)}</span>`;
 
-old_desktop_row_badges = '''            const remaining = Math.max(0, o.amount - o.paidAmount);
-            const label = App.Utils.escapeHtml(this.t("badge_" + o.status));
-            const badges = {
-              Aprovado: `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-check"></i> ${label}</span>`,
-              Parcial: `<span class="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-clock-rotate-left"></i> ${label}</span>`,
-              Cancelado: `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-xmark"></i> ${label}</span>`,
-              Pendente: `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full font-semibold text-[11px]"><i class="fa-solid fa-clock"></i> ${label}</span>`
-            };'''
+              return `
+                <div class="bg-slate-900/85 border border-slate-700/80 rounded-xl p-3 space-y-2">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1.5">
+                        <span class="font-mono text-[10px] font-bold text-slate-400">#${o.id}</span>
+                        <span class="font-bold text-white text-xs truncate">${App.Utils.escapeHtml(o.customer)}</span>
+                      </div>
+                      <div class="text-[10px] text-slate-400 mt-0.5">${App.Utils.escapeHtml(o.date)} ${o.phone ? `• <i class="fa-brands fa-whatsapp text-emerald-400"></i> ${App.Utils.escapeHtml(o.phone)}` : ""}</div>
+                    </div>
+                    <span class="border px-2 py-0.5 rounded-full font-semibold text-[10px] shrink-0 ${badgeCls}">${label}</span>
+                  </div>
 
-new_desktop_row_badges = '''            const remaining = Math.max(0, o.amount - o.paidAmount);
+                  <div class="flex flex-wrap">${itemsHtml}</div>
+
+                  <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                    <div class="text-[11px]">
+                      <span class="font-extrabold text-white">${App.Utils.formatCurrency(o.amount)}</span>
+                      <span class="text-slate-400 text-[10px] ml-1">(Pago: <span class="text-emerald-400">${App.Utils.formatCurrency(o.paidAmount)}</span>)</span>
+                      ${remaining > 0 && o.status !== "Cancelado" ? `<div class="text-[10px] font-bold text-amber-400">Falta: ${App.Utils.formatCurrency(remaining)}</div>` : ""}
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <button onclick="App.Services.openPixModal(${o.id})" aria-label="QR Code Pix" class="p-1.5 bg-indigo-500/15 text-indigo-300 rounded-lg"><i class="fa-solid fa-qrcode text-xs"></i></button>
+                      <button onclick="App.Services.sendOrderWhatsapp(${o.id})" aria-label="WhatsApp" class="p-1.5 bg-green-500/15 text-green-400 rounded-lg"><i class="fa-brands fa-whatsapp text-xs"></i></button>
+                      <button onclick="App.UI.openReceiptModal(${o.id})" aria-label="Recibo" class="p-1.5 bg-sky-500/15 text-sky-400 rounded-lg"><i class="fa-solid fa-file-invoice text-xs"></i></button>
+                      <button onclick="App.Services.toggleOrderStatus(${o.id})" aria-label="Alternar Status" class="p-1.5 bg-emerald-500/15 text-emerald-400 rounded-lg"><i class="fa-solid fa-arrows-rotate text-xs"></i></button>
+                      <button onclick="App.UI.editOrder(${o.id})" aria-label="Editar" class="p-1.5 bg-slate-700/70 text-slate-200 rounded-lg"><i class="fa-solid fa-pen text-xs"></i></button>
+                      <button onclick="App.Services.deleteOrder(${o.id})" aria-label="Excluir" class="p-1.5 bg-rose-500/15 text-rose-400 rounded-lg"><i class="fa-solid fa-trash text-xs"></i></button>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join("");
+          }
+
+          tbody.innerHTML = filtered.map(o => {
+            const remaining = Math.max(0, o.amount - o.paidAmount);
             const isOverdue = App.Utils.isOrderOverdue(o);
             const label = App.Utils.escapeHtml(this.t("badge_" + o.status));
             const badges = {
@@ -1212,92 +2775,154 @@ new_desktop_row_badges = '''            const remaining = Math.max(0, o.amount -
             };
             const statusHtml = isOverdue
               ? `<span class="bg-rose-500/25 text-rose-300 border border-rose-500/50 px-2.5 py-1 rounded-full font-bold text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i> Vencido</span>`
-              : (badges[o.status] || badges.Pendente);'''
+              : (badges[o.status] || badges.Pendente);
 
-assert old_desktop_row_badges in html
-html = html.replace(old_desktop_row_badges, new_desktop_row_badges, 1)
-
-html = html.replace(
-    '<td class="py-3.5 px-4">${badges[o.status] || badges.Pendente}</td>',
-    '<td class="py-3.5 px-4">${statusHtml}${o.dueDate && o.status !== "Aprovado" ? `<div class="text-[10px] mt-1 ${isOverdue ? "text-rose-400 font-bold" : "text-slate-400"}">Venc: ${App.Utils.escapeHtml(o.dueDate)}</div>` : ""}</td>',
-    1
-)
-
-# 15. Update renderCatalog to display stock badge
-old_catalog_card = '''          grid.innerHTML = App.State.products.map(p => `
-            <div class="bg-slate-900/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between gap-3">
-              <div>
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">${App.Utils.escapeHtml(p.category)}</span>
-                  <div class="space-x-1">
-                    <button onclick="App.UI.editProduct(${p.id})" aria-label="Editar produto ${App.Utils.escapeHtml(p.name)}" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"><i class="fa-solid fa-pen text-xs"></i></button>
-                    <button onclick="App.Services.deleteProduct(${p.id})" aria-label="Excluir produto ${App.Utils.escapeHtml(p.name)}" class="p-1.5 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-slate-800"><i class="fa-solid fa-trash text-xs"></i></button>
+            return `
+              <tr class="hover:bg-slate-700/40 transition">
+                <td class="py-3.5 px-4 font-mono font-bold text-slate-400">#${o.id}</td>
+                <td class="py-3.5 px-4">
+                  <div class="font-semibold text-white">${App.Utils.escapeHtml(o.customer)}</div>
+                  ${o.phone ? `<div class="text-[10px] text-emerald-400 font-mono"><i class="fa-brands fa-whatsapp"></i> ${App.Utils.escapeHtml(o.phone)}</div>` : ""}
+                </td>
+                <td class="py-3.5 px-4">
+                  ${(Array.isArray(o.items) && o.items.length > 1)
+                    ? `<div class="space-y-1">
+                        ${o.items.map(it => `
+                          <div class="text-slate-200 font-medium text-[11px]">
+                            <span class="inline-block bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono font-bold text-[10px] px-1.5 py-0.5 rounded mr-1">${it.quantity}x</span>
+                            ${App.Utils.escapeHtml(it.product)} <span class="text-slate-400">(${App.Utils.formatCurrency(it.unitPrice)})</span>
+                          </div>
+                        `).join("")}
+                      </div>`
+                    : `<div class="text-slate-200 font-medium">
+                        <span class="inline-block bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono font-bold text-[10px] px-1.5 py-0.5 rounded mr-1">${o.quantity}x</span>
+                        ${App.Utils.escapeHtml(o.product)}
+                      </div>
+                      <div class="text-[10px] text-slate-400 mt-0.5">${App.Utils.escapeHtml(this.t("unit_short"))}: ${App.Utils.formatCurrency(o.unitPrice)}</div>`
+                  }
+                </td>
+                <td class="py-3.5 px-4">
+                  <div class="font-bold text-white">${App.Utils.formatCurrency(o.amount)}</div>
+                  <div class="text-[10px] text-slate-400">
+                    ${App.Utils.formatCurrency(o.paidAmount)}
+                    ${remaining > 0 ? `<span class="text-amber-400 font-semibold">(-${App.Utils.formatCurrency(remaining)})</span>` : ""}
                   </div>
-                </div>
-                <h3 class="text-sm font-bold text-white mt-2">${App.Utils.escapeHtml(p.name)}</h3>
-                <p class="text-lg font-extrabold text-emerald-400 mt-1">${App.Utils.formatCurrency(p.price)}</p>
-              </div>'''
+                </td>
+                <td class="py-3.5 px-4">${statusHtml}${o.dueDate && o.status !== "Aprovado" ? `<div class="text-[10px] mt-1 ${isOverdue ? "text-rose-400 font-bold" : "text-slate-400"}">Venc: ${App.Utils.escapeHtml(o.dueDate)}</div>` : ""}</td>
+                <td class="py-3.5 px-4 text-slate-400">${App.Utils.escapeHtml(o.date)}</td>
+                <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-0.5">
+                  <button onclick="App.Services.openPixModal(${o.id})" aria-label="QR Code Pix #${o.id}" title="QR Code Pix" class="p-2 text-indigo-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-qrcode text-sm"></i>
+                  </button>
+                  <button onclick="App.Services.sendOrderWhatsapp(${o.id})" aria-label="WhatsApp #${o.id}" title="WhatsApp" class="p-2 text-green-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                  </button>
+                  <button onclick="App.UI.openReceiptModal(${o.id})" aria-label="Recibo #${o.id}" title="Recibo / PDF" class="p-2 text-sky-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-file-invoice text-sm"></i>
+                  </button>
+                  <button onclick="App.Services.toggleOrderStatus(${o.id})" aria-label="Alternar Status #${o.id}" title="Alternar Status" class="p-2 text-emerald-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                  </button>
+                  <button onclick="App.UI.editOrder(${o.id})" aria-label="Editar #${o.id}" title="Editar" class="p-2 text-slate-300 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-pen text-sm"></i>
+                  </button>
+                  <button onclick="App.Services.deleteOrder(${o.id})" aria-label="Excluir #${o.id}" title="Excluir" class="p-2 text-rose-400 hover:bg-slate-700 rounded-lg transition">
+                    <i class="fa-solid fa-trash text-sm"></i>
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join("");
+        },
 
-new_catalog_card = '''          grid.innerHTML = App.State.products.map(p => {
+        renderCatalog() {
+          const grid = document.getElementById("catalog-grid");
+          if (!grid) return;
+
+          if (!App.State.products.length) {
+            grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-slate-400">${App.Utils.escapeHtml(this.t("empty_catalog"))}</div>`;
+            return;
+          }
+
+          grid.innerHTML = App.State.products.map(p => {
             const hasStock = p.stock !== null && p.stock !== undefined;
             const stockBadge = hasStock
               ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.stock === 0 ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : (p.stock <= 3 ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30")}">Estoque: ${p.stock}</span>`
               : "";
             return `
-            <div class="bg-slate-900/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between gap-3">
-              <div>
-                <div class="flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">${App.Utils.escapeHtml(p.category)}</span>
-                    ${stockBadge}
+              <div class="bg-slate-900/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between gap-3">
+                <div>
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">${App.Utils.escapeHtml(p.category)}</span>
+                      ${stockBadge}
+                    </div>
+                    <div class="space-x-1 shrink-0">
+                      <button onclick="App.UI.editProduct(${p.id})" aria-label="Editar produto ${App.Utils.escapeHtml(p.name)}" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"><i class="fa-solid fa-pen text-xs"></i></button>
+                      <button onclick="App.Services.deleteProduct(${p.id})" aria-label="Excluir produto ${App.Utils.escapeHtml(p.name)}" class="p-1.5 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-slate-800"><i class="fa-solid fa-trash text-xs"></i></button>
+                    </div>
                   </div>
-                  <div class="space-x-1 shrink-0">
-                    <button onclick="App.UI.editProduct(${p.id})" aria-label="Editar produto ${App.Utils.escapeHtml(p.name)}" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"><i class="fa-solid fa-pen text-xs"></i></button>
-                    <button onclick="App.Services.deleteProduct(${p.id})" aria-label="Excluir produto ${App.Utils.escapeHtml(p.name)}" class="p-1.5 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-slate-800"><i class="fa-solid fa-trash text-xs"></i></button>
-                  </div>
+                  <h3 class="text-sm font-bold text-white mt-2">${App.Utils.escapeHtml(p.name)}</h3>
+                  <p class="text-lg font-extrabold text-emerald-400 mt-1">${App.Utils.formatCurrency(p.price)}</p>
                 </div>
-                <h3 class="text-sm font-bold text-white mt-2">${App.Utils.escapeHtml(p.name)}</h3>
-                <p class="text-lg font-extrabold text-emerald-400 mt-1">${App.Utils.formatCurrency(p.price)}</p>
-              </div>`;
-          })'''
+                <button onclick="App.UI.openNewOrderModal(${p.id})" class="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-cart-plus"></i> ${App.Utils.escapeHtml(this.t("btn_new_order"))}
+                </button>
+              </div>
+            `;
+          }).join("");
+        },
 
-# Fix closing of map in renderCatalog
-html = html.replace(old_catalog_card, new_catalog_card, 1)
-html = html.replace(
-    '''              <button onclick="App.UI.openNewOrderModal(${p.id})" class="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-cart-plus"></i> ${App.Utils.escapeHtml(this.t("btn_new_order"))}
-              </button>
-            </div>
-          `).join("");''',
-    '''              <button onclick="App.UI.openNewOrderModal(${p.id})" class="w-full py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-cart-plus"></i> ${App.Utils.escapeHtml(this.t("btn_new_order"))}
-              </button>
-            </div>
-          `;
-          }).join("");''',
-    1
-)
+        toggleReceivableBreakdown() {
+          const panel = document.getElementById("receivable-breakdown-panel");
+          if (panel) panel.classList.toggle("hidden");
+        },
 
-# 16. Update updateKPIs to highlight overdue orders in red inside #receivable-list and show overdue pill
-old_kpis_receivable_list = '''          const totalReceivable = openOrders.reduce((acc, o) => acc + o.remaining, 0);
-          const pendingOnlySum = openOrders.filter(o => o.status === "Pendente").reduce((acc, o) => acc + o.remaining, 0);
-          const partialOnlySum = openOrders.filter(o => o.status === "Parcial").reduce((acc, o) => acc + o.remaining, 0);'''
+        updateKPIs() {
+          const orders = App.State.orders;
+          const activeOrders = orders.filter(o => o.status !== "Cancelado");
+          const totalRevenue = activeOrders.reduce((acc, o) => acc + o.paidAmount, 0);
+          const totalGross = activeOrders.reduce((acc, o) => acc + o.amount, 0);
 
-new_kpis_receivable_list = '''          const totalReceivable = openOrders.reduce((acc, o) => acc + o.remaining, 0);
+          const openOrders = activeOrders
+            .map(o => ({ ...o, remaining: Math.max(0, Number((o.amount - o.paidAmount).toFixed(2))) }))
+            .filter(o => o.remaining > 0 && o.status !== "Aprovado");
+
+          const totalReceivable = openOrders.reduce((acc, o) => acc + o.remaining, 0);
           const overdueOrders = openOrders.filter(o => App.Utils.isOrderOverdue(o));
           const overdueSum = overdueOrders.reduce((acc, o) => acc + o.remaining, 0);
           const pendingOnlySum = openOrders.filter(o => o.status === "Pendente").reduce((acc, o) => acc + o.remaining, 0);
-          const partialOnlySum = openOrders.filter(o => o.status === "Parcial").reduce((acc, o) => acc + o.remaining, 0);'''
+          const partialOnlySum = openOrders.filter(o => o.status === "Parcial").reduce((acc, o) => acc + o.remaining, 0);
 
-assert old_kpis_receivable_list in html
-html = html.replace(old_kpis_receivable_list, new_kpis_receivable_list, 1)
+          const totalOrders = orders.length;
+          const approvedOrders = orders.filter(o => o.status === "Aprovado");
+          const conversionRate = totalOrders > 0 ? Math.round((approvedOrders.length / totalOrders) * 100) : 0;
+          const payingOrders = activeOrders.filter(o => o.paidAmount > 0);
+          const avgTicket = payingOrders.length > 0 ? totalRevenue / payingOrders.length : 0;
 
-old_pills_update = '''          const pendingPill = document.getElementById("receivable-pending-pill");
-          const partialPill = document.getElementById("receivable-partial-pill");
-          if (pendingPill) pendingPill.textContent = `Pendentes: ${App.Utils.formatCurrency(pendingOnlySum)}`;
-          if (partialPill) partialPill.textContent = `Parciais: ${App.Utils.formatCurrency(partialOnlySum)}`;'''
+          document.getElementById("kpi-revenue").textContent = App.Utils.formatCurrency(totalRevenue);
+          document.getElementById("kpi-receivable").textContent = App.Utils.formatCurrency(totalReceivable);
+          document.getElementById("kpi-receivable-sub").textContent = openOrders.length === 1
+            ? "1 pedido em aberto"
+            : `${openOrders.length} pedidos em aberto`;
+          document.getElementById("kpi-total-orders").textContent = String(totalOrders);
+          document.getElementById("kpi-conversion").textContent = `${conversionRate}%`;
+          document.getElementById("kpi-avg-ticket").textContent = App.Utils.formatCurrency(avgTicket);
 
-new_pills_update = '''          const overduePill = document.getElementById("receivable-overdue-pill");
+          const paidPct = totalGross > 0 ? Math.min(100, Math.round((totalRevenue / totalGross) * 100)) : 0;
+          const duePct = totalGross > 0 ? Math.max(0, 100 - paidPct) : 0;
+
+          const barPaid = document.getElementById("receivable-bar-paid");
+          const barDue = document.getElementById("receivable-bar-due");
+          if (barPaid) barPaid.style.width = `${paidPct}%`;
+          if (barDue) barDue.style.width = `${duePct}%`;
+
+          const pctPaidEl = document.getElementById("receivable-pct-paid");
+          const pctDueEl = document.getElementById("receivable-pct-due");
+          if (pctPaidEl) pctPaidEl.textContent = `Recebido: ${App.Utils.formatCurrency(totalRevenue)} (${paidPct}%)`;
+          if (pctDueEl) pctDueEl.textContent = `Falta receber: ${App.Utils.formatCurrency(totalReceivable)} (${duePct}%)`;
+
+          const overduePill = document.getElementById("receivable-overdue-pill");
           if (overduePill) {
             if (overdueOrders.length > 0) {
               overduePill.textContent = `⚠️ Vencidos (${overdueOrders.length}): ${App.Utils.formatCurrency(overdueSum)}`;
@@ -1309,76 +2934,260 @@ new_pills_update = '''          const overduePill = document.getElementById("rec
           const pendingPill = document.getElementById("receivable-pending-pill");
           const partialPill = document.getElementById("receivable-partial-pill");
           if (pendingPill) pendingPill.textContent = `Pendentes: ${App.Utils.formatCurrency(pendingOnlySum)}`;
-          if (partialPill) partialPill.textContent = `Parciais: ${App.Utils.formatCurrency(partialOnlySum)}`;'''
+          if (partialPill) partialPill.textContent = `Parciais: ${App.Utils.formatCurrency(partialOnlySum)}`;
 
-assert old_pills_update in html
-html = html.replace(old_pills_update, new_pills_update, 1)
+          const summaryLine = document.getElementById("receivable-summary-line");
+          if (summaryLine) {
+            summaryLine.textContent = openOrders.length > 0
+              ? `Total vendido ativo: ${App.Utils.formatCurrency(totalGross)} • Falta receber ${App.Utils.formatCurrency(totalReceivable)} de ${openOrders.length} pedido(s)`
+              : "Tudo em dia! Nenhum saldo pendente a receber.";
+          }
 
-old_open_orders_card = '''              listEl.innerHTML = openOrders
-                .sort((a, b) => b.remaining - a.remaining)
-                .map(o => `
-                  <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        <span class="font-mono text-[10px] text-slate-400">#${o.id}</span>
-                        <span class="font-bold text-white text-xs truncate">${App.Utils.escapeHtml(o.customer)}</span>
-                        <span class="text-[9px] px-1.5 py-0.5 rounded font-semibold ${o.status === "Parcial" ? "bg-blue-500/20 text-blue-300" : "bg-amber-500/20 text-amber-300"}">${App.Utils.escapeHtml(this.t("badge_" + o.status))}</span>
-                      </div>
-                      <p class="text-[10px] text-slate-400 truncate mt-0.5">${App.Utils.escapeHtml(o.product)}</p>
-                      <p class="text-[10px] text-slate-300 mt-0.5">
-                        Pago: <span class="text-emerald-400 font-semibold">${App.Utils.formatCurrency(o.paidAmount)}</span> / ${App.Utils.formatCurrency(o.amount)}
-                      </p>
-                    </div>'''
-
-new_open_orders_card = '''              listEl.innerHTML = openOrders
+          const listEl = document.getElementById("receivable-list");
+          if (listEl) {
+            if (!openOrders.length) {
+              listEl.innerHTML = `<div class="col-span-full text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2 flex items-center gap-2"><i class="fa-solid fa-circle-check"></i> Todos os pedidos ativos já foram quitados!</div>`;
+            } else {
+              listEl.innerHTML = openOrders
                 .sort((a, b) => (App.Utils.isOrderOverdue(b) ? 1 : 0) - (App.Utils.isOrderOverdue(a) ? 1 : 0) || b.remaining - a.remaining)
                 .map(o => {
                   const isOverdue = App.Utils.isOrderOverdue(o);
                   return `
-                  <div class="${isOverdue ? "bg-rose-950/35 border-rose-500/50" : "bg-slate-900/80 border-slate-700/80"} border rounded-xl p-2.5 flex items-center justify-between gap-2">
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        <span class="font-mono text-[10px] text-slate-400">#${o.id}</span>
-                        <span class="font-bold text-white text-xs truncate">${App.Utils.escapeHtml(o.customer)}</span>
-                        ${isOverdue
-                          ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-rose-500/25 text-rose-300 border border-rose-500/40">VENCIDO</span>`
-                          : `<span class="text-[9px] px-1.5 py-0.5 rounded font-semibold ${o.status === "Parcial" ? "bg-blue-500/20 text-blue-300" : "bg-amber-500/20 text-amber-300"}">${App.Utils.escapeHtml(this.t("badge_" + o.status))}</span>`}
+                    <div class="${isOverdue ? "bg-rose-950/35 border-rose-500/50" : "bg-slate-900/80 border-slate-700/80"} border rounded-xl p-2.5 flex items-center justify-between gap-2">
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-1.5">
+                          <span class="font-mono text-[10px] text-slate-400">#${o.id}</span>
+                          <span class="font-bold text-white text-xs truncate">${App.Utils.escapeHtml(o.customer)}</span>
+                          ${isOverdue
+                            ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-rose-500/25 text-rose-300 border border-rose-500/40">VENCIDO</span>`
+                            : `<span class="text-[9px] px-1.5 py-0.5 rounded font-semibold ${o.status === "Parcial" ? "bg-blue-500/20 text-blue-300" : "bg-amber-500/20 text-amber-300"}">${App.Utils.escapeHtml(this.t("badge_" + o.status))}</span>`}
+                        </div>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5">${App.Utils.escapeHtml(o.product)}${o.dueDate ? ` • Venc: <span class="${isOverdue ? "text-rose-300 font-bold" : ""}">${App.Utils.escapeHtml(o.dueDate)}</span>` : ""}</p>
+                        <p class="text-[10px] text-slate-300 mt-0.5">
+                          Pago: <span class="text-emerald-400 font-semibold">${App.Utils.formatCurrency(o.paidAmount)}</span> / ${App.Utils.formatCurrency(o.amount)}
+                        </p>
                       </div>
-                      <p class="text-[10px] text-slate-400 truncate mt-0.5">${App.Utils.escapeHtml(o.product)}${o.dueDate ? ` • Venc: <span class="${isOverdue ? "text-rose-300 font-bold" : ""}">${App.Utils.escapeHtml(o.dueDate)}</span>` : ""}</p>
-                      <p class="text-[10px] text-slate-300 mt-0.5">
-                        Pago: <span class="text-emerald-400 font-semibold">${App.Utils.formatCurrency(o.paidAmount)}</span> / ${App.Utils.formatCurrency(o.amount)}
-                      </p>
-                    </div>`;
-                })'''
-
-assert old_open_orders_card in html
-html = html.replace(old_open_orders_card, new_open_orders_card, 1)
-html = html.replace(
-    '''                        <button onclick="App.Services.sendOrderWhatsapp(${o.id})" title="Cobrar no WhatsApp" class="px-2 py-1 bg-green-600/20 hover:bg-green-600 text-green-300 hover:text-white rounded-lg text-[10px] font-semibold transition">
-                          <i class="fa-brands fa-whatsapp"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                `).join("");''',
-    '''                        <button onclick="App.Services.sendOrderWhatsapp(${o.id})" title="Cobrar no WhatsApp" class="px-2 py-1 bg-green-600/20 hover:bg-green-600 text-green-300 hover:text-white rounded-lg text-[10px] font-semibold transition">
-                          <i class="fa-brands fa-whatsapp"></i>
-                        </button>
+                      <div class="text-right shrink-0 flex flex-col items-end gap-1">
+                        <span class="text-xs font-extrabold text-amber-400">${App.Utils.formatCurrency(o.remaining)}</span>
+                        <div class="flex items-center gap-1">
+                          <button onclick="App.Services.openPixModal(${o.id})" title="Cobrar Pix" class="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-lg text-[10px] font-semibold transition">
+                            <i class="fa-solid fa-qrcode"></i>
+                          </button>
+                          <button onclick="App.Services.sendOrderWhatsapp(${o.id})" title="Cobrar no WhatsApp" class="px-2 py-1 bg-green-600/20 hover:bg-green-600 text-green-300 hover:text-white rounded-lg text-[10px] font-semibold transition">
+                            <i class="fa-brands fa-whatsapp"></i>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                `;
-                }).join("");''',
-    1
-)
+                  `;
+                }).join("");
+            }
+          }
+        },
 
-# 17. Add modal-cash-report to Escape key handler
-html = html.replace(
-    '"modal-receipt",',
-    '"modal-receipt",\n          "modal-cash-report",'
-)
+        updateCharts() {
+          if (typeof Chart === "undefined") return;
+          const orders = App.State.orders;
 
-with open("gatopixel-sales-v5.html", "w", encoding="utf-8") as f:
-    f.write(html)
+          const counts = [
+            orders.filter(o => o.status === "Aprovado").length,
+            orders.filter(o => o.status === "Pendente").length,
+            orders.filter(o => o.status === "Parcial").length,
+            orders.filter(o => o.status === "Cancelado").length
+          ];
+          const statusLabels = [
+            this.t("badge_Aprovado"),
+            this.t("badge_Pendente"),
+            this.t("badge_Parcial"),
+            this.t("badge_Cancelado")
+          ];
 
-print("SUCCESS v5")
+          const productTotals = {};
+          orders.forEach(o => {
+            if (Array.isArray(o.items) && o.items.length) {
+              o.items.forEach(it => {
+                productTotals[it.product] = (productTotals[it.product] || 0) + (it.quantity * it.unitPrice);
+              });
+            } else {
+              productTotals[o.product] = (productTotals[o.product] || 0) + o.amount;
+            }
+          });
+          const prodLabels = Object.keys(productTotals);
+          const prodValues = Object.values(productTotals);
+
+          const ctxStatus = document.getElementById("chart-status")?.getContext("2d");
+          if (ctxStatus) {
+            if (App.State.charts.status) {
+              App.State.charts.status.data.labels = statusLabels;
+              App.State.charts.status.data.datasets[0].data = counts;
+              App.State.charts.status.update();
+            } else {
+              App.State.charts.status = new Chart(ctxStatus, {
+                type: "doughnut",
+                data: {
+                  labels: statusLabels,
+                  datasets: [{
+                    data: counts,
+                    backgroundColor: ["#10b981", "#f59e0b", "#3b82f6", "#f43f5e"],
+                    borderWidth: 0
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { labels: { color: "#cbd5e1", font: { size: 11 } } } }
+                }
+              });
+            }
+          }
+
+          const ctxProducts = document.getElementById("chart-products")?.getContext("2d");
+          if (ctxProducts) {
+            const labels = prodLabels.length ? prodLabels : ["-"];
+            const values = prodValues.length ? prodValues : [0];
+            if (App.State.charts.products) {
+              App.State.charts.products.data.labels = labels;
+              App.State.charts.products.data.datasets[0].data = values;
+              App.State.charts.products.update();
+            } else {
+              App.State.charts.products = new Chart(ctxProducts, {
+                type: "bar",
+                data: {
+                  labels,
+                  datasets: [{
+                    label: this.t("kpi_revenue"),
+                    data: values,
+                    backgroundColor: "#6366f1",
+                    borderRadius: 8
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { labels: { color: "#cbd5e1", font: { size: 11 } } } },
+                  scales: {
+                    x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { display: false } },
+                    y: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { color: "#1e293b" } }
+                  }
+                }
+              });
+            }
+          }
+
+          const insightsEl = document.getElementById("analytics-insights");
+          if (insightsEl) {
+            const topProduct = Object.entries(productTotals).sort((a, b) => b[1] - a[1])[0];
+            insightsEl.innerHTML = topProduct
+              ? `<strong>${App.Utils.escapeHtml(topProduct[0])}</strong> — ${App.Utils.formatCurrency(topProduct[1])} (${this.t("status_pending")}: ${counts[1] + counts[2]})`
+              : `${this.t("empty_orders")}`;
+          }
+        },
+
+        applyTranslations() {
+          const lang = App.Translations[App.State.config.language] ? App.State.config.language : "pt";
+          const dict = App.Translations[lang];
+
+          document.querySelectorAll("[data-i18n]").forEach(el => {
+            const key = el.getAttribute("data-i18n");
+            if (dict[key]) el.textContent = dict[key];
+          });
+
+          document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+            const key = el.getAttribute("data-i18n-placeholder");
+            if (dict[key]) el.placeholder = dict[key];
+          });
+
+          document.getElementById("header-lang-flag").textContent = dict.flag;
+          const welcomeEl = document.getElementById("gatopixel-welcome-msg");
+          if (welcomeEl && dict.ai_welcome) welcomeEl.innerHTML = dict.ai_welcome;
+        },
+
+        appendChatMessage(htmlContent, sender = "cat") {
+          const chatBox = document.getElementById("gatopixel-chat-messages");
+          if (!chatBox) return;
+          const div = document.createElement("div");
+          div.className = sender === "user" ? "flex gap-2.5 items-start justify-end" : "flex gap-2.5 items-start";
+          div.innerHTML = sender === "user"
+            ? `<div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">${htmlContent}</div>`
+            : `<div class="w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xs shrink-0 mt-0.5"><i class="fa-solid fa-cat"></i></div>
+               <div class="bg-slate-100 text-slate-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] leading-relaxed">${htmlContent}</div>`;
+          chatBox.appendChild(div);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        },
+
+        async copyLastWhatsappMessage() {
+          if (!App.State.lastWhatsappCopy) return;
+          try {
+            await navigator.clipboard.writeText(App.State.lastWhatsappCopy);
+            this.showToast(this.t("toast_pix_copied"), "success");
+          } catch (_) {}
+        },
+
+        showToast(message, type = "info", action = null) {
+          const container = document.getElementById("toast-container");
+          if (!container) return;
+          const colors = {
+            success: "bg-emerald-600",
+            error: "bg-rose-600",
+            info: "bg-slate-800 border border-slate-700"
+          };
+          const toast = document.createElement("div");
+          toast.className = `${colors[type] || colors.info} text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-3 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0`;
+
+          const textSpan = document.createElement("span");
+          textSpan.innerHTML = `<i class="fa-solid fa-circle-info mr-1.5"></i>${App.Utils.escapeHtml(message)}`;
+          toast.appendChild(textSpan);
+
+          if (action && typeof action.onClick === "function") {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide";
+            btn.textContent = action.label;
+            btn.onclick = () => {
+              action.onClick();
+              toast.remove();
+            };
+            toast.appendChild(btn);
+          }
+
+          container.appendChild(toast);
+          requestAnimationFrame(() => toast.classList.remove("translate-y-2", "opacity-0"));
+
+          const duration = action ? 5000 : 3000;
+          setTimeout(() => {
+            toast.classList.add("opacity-0", "-translate-y-2");
+            setTimeout(() => toast.remove(), 300);
+          }, duration);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        const modals = [
+          "modal-pix",
+          "modal-receipt",
+          "modal-cash-report",
+          "modal-order",
+          "modal-product",
+          "modal-pix-settings",
+          "modal-dev-auth",
+          "modal-gatopixel-ai"
+        ];
+        for (const id of modals) {
+          const el = document.getElementById(id);
+          if (el && !el.classList.contains("hidden")) {
+            if (id === "modal-pix") App.UI.closePixModal();
+            else App.UI.closeModal(id);
+            break;
+          }
+        }
+      }
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      App.Services.init();
+    });
+  </script>
+</body>
+</html>
